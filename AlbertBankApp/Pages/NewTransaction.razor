@@ -1,0 +1,162 @@
+@page "/NewTransaction"
+@using System.ComponentModel.DataAnnotations
+@inject NavigationManager NavigationManager
+@using AlbertBankApp.Domain
+@using AlbertBankApp.Interfaces
+@inject IAccountService AccountService
+@inject ILocalStorageService LocalStorageService
+
+<h3>Överföring</h3>
+
+@if (_accounts == null || _accounts.Count < 2)
+{
+    <p>Skapa minst 2 konton för att göra en transaktion.</p>
+}
+else
+{
+    <EditForm Model="_transferModel" OnValidSubmit="HandleTransfer">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+
+        <!-- från konto dropdown -->
+        <div class="mb-3">
+            <label for="fromAccount" class="form-label">Från konto</label>
+            <InputSelect id="fromAccount" class="form-select" @bind-Value="_transferModel.FromAccountId" @bind-Value:after="FromAccountChanged">
+                <option value="@Guid.Empty">Välj konto</option>
+                @foreach (var account in _accounts)
+                {
+                    <option value="@account.Id">@account.Name (@account.Balance.ToString("C"))</option>
+                }
+            </InputSelect>
+        </div>
+        
+        <!-- till konto dropdown -->
+        <div class="mb-3">
+            <label for="toAccount" class="form-label">Till konto</label>
+            <InputSelect id="toAccount" class="form-select" @bind-Value="_transferModel.ToAccountId">
+                <option value="@Guid.Empty">Välj konto</option>
+                @foreach (var account in _toAccounts)
+                {
+                    <option value="@account.Id">@account.Name (@account.Balance.ToString("C"))</option>
+                }
+            </InputSelect>
+        </div>
+
+        <div class="mb-3">
+            <label for="amount" class="form-label">Belopp</label>
+            <InputNumber id="amount" class="form-control" @bind-Value="_transferModel.Amount" />
+        </div>
+
+        @if (!string.IsNullOrEmpty(_errorMessage))
+        {
+            <div class="alert alert-danger">@_errorMessage</div>
+        }
+
+        <button type="submit" class="btn btn-primary">Överför</button>
+        <br/>
+        
+        <!-- Transaktionshistorik -->
+        
+        @if (_history.Any())
+        {
+            <h4 class="mt-4">Transaktionshistorik</h4>
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Datum</th>
+                        <th>Från konto</th>
+                        <th>Till konto</th>
+                        <th>Belopp</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var transaction in _history.OrderByDescending(t => t.TimeStamp))
+                    {
+                        <tr>
+                            <td>@transaction.TimeStamp.ToString("g")</td>
+                            <td>@transaction.FromAccountName</td>
+                            <td>@transaction.ToAccountName</td>
+                            <td>@transaction.Amount.ToString("C")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+        
+    </EditForm>
+}
+
+@code {
+    private List<BankAccount> _accounts = new();
+    private List<BankAccount> _toAccounts = new();
+    private TransferModel _transferModel = new();
+    private string? _errorMessage;
+    private List<Transaction> _history = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _accounts = (await AccountService.GetAccountsAsync()).ToList();
+        _toAccounts = _accounts;
+        _history = await LocalStorageService.GetItemAsync<List<Transaction>>("TransactionHistory") ?? new List<Transaction>();
+    }
+
+    private void FromAccountChanged()
+    {
+        _toAccounts = _accounts.Where(a => a.Id != _transferModel.FromAccountId).ToList();
+        if (_toAccounts.All(a => a.Id != _transferModel.ToAccountId))
+        {
+            _transferModel.ToAccountId = Guid.Empty;
+        }
+        StateHasChanged();
+    }
+
+    private async Task HandleTransfer()
+    {
+        _errorMessage = null;
+        try
+        {
+            await AccountService.TransferAsync(
+                _transferModel.FromAccountId,
+                _transferModel.ToAccountId,
+                _transferModel.Amount);
+            
+            var fromAccount = _accounts.First(a => a.Id == _transferModel.FromAccountId);
+            var toAccount = _accounts.First(a => a.Id == _transferModel.ToAccountId);
+
+            var tx = new Transaction
+            {
+                TimeStamp = DateTime.UtcNow,
+                Amount = _transferModel.Amount,
+                FromAccountId = fromAccount.Id,
+                ToAccountId = toAccount.Id,
+                FromAccountName = fromAccount.Name,
+                ToAccountName = toAccount.Name,
+                TransactionType = TransactionType.Transfer
+            };
+
+            _history.Add(tx);
+            
+            await LocalStorageService.SetItemAsync("TransactionHistory", _history);
+            
+            _accounts = (await AccountService.GetAccountsAsync()).ToList();
+            _toAccounts = _accounts.Where(a => a.Id != _transferModel.FromAccountId).ToList();
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = ex.Message;
+        }
+    }
+
+    public class TransferModel
+    {
+        [Required(ErrorMessage = "Välj ett från konto")]
+        public Guid FromAccountId { get; set; }
+
+        [Required(ErrorMessage = "Välj ett till konto")]
+        public Guid ToAccountId { get; set; }
+
+        [Required]
+        [Range(0.01, double.MaxValue, ErrorMessage = "Belopp måste vara större än 0")]
+        public decimal Amount { get; set; }
+    }
+}

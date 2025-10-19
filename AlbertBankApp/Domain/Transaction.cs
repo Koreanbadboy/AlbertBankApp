@@ -1,0 +1,25 @@
+namespace AlbertBankApp.Domain;
+
+public enum TransactionType
+{
+    Deposit,
+    Withdrawal,
+    Transfer,
+}
+
+public class Transaction
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public DateTime TimeStamp { get; set; } = DateTime.UtcNow;
+    public decimal Amount { get; set; }
+    public decimal? BalanceBefore { get; set; }
+    public decimal? BalanceAfter { get; set; }
+    public Guid? FromAccountId { get; set; }
+    public Guid? ToAccountId { get; set; }
+    public TransactionType TransactionType { get; set; }
+    public string FromAccountName { get; set; } = string.Empty;
+    public string ToAccountName { get; set; } = string.Empty;
+    public string Notes { get; set; } = string.Empty;
+    public string Note { get; set; } = string.Empty;
+    public object Date { get; }
+}

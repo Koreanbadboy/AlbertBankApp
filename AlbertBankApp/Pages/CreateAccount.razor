@@ -1,0 +1,137 @@
+@page "/CreateAccount"
+@using System.ComponentModel.DataAnnotations
+@using AlbertBankApp.Domain
+@using AlbertBankApp.Interfaces
+@using System.Linq
+@inject IAccountService AccountService
+@inject NavigationManager NavigationManager
+
+<h3>Skapa konto</h3>
+
+@if (!string.IsNullOrEmpty(_successMessage))
+{
+    <div class="alert alert-success" role="alert">
+        @_successMessage
+    </div>
+}
+
+<EditForm Model="_model" OnValidSubmit="CreateAsync">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div class="mb-2">
+        <label>Namn</label>
+        <InputText class="form-control" @bind-Value="_model.Name" />
+    </div>
+
+    <div class="mb-2">
+        <label>Kontotyp</label>
+        <InputSelect class="form-select" @bind-Value="_model.Type">
+            @foreach (var t in Enum.GetValues<AccountType>())
+            {
+                <option value="@t">@t</option>
+            }
+        </InputSelect>
+    </div>
+
+    <div class="mb-2">
+        <label>Valuta</label>
+        <InputSelect class="form-select" @bind-Value="_model.Currency">
+            @foreach (var c in Enum.GetValues<CurrencyType>())
+            {
+                <option value="@c">@c</option>
+            }
+        </InputSelect>
+    </div>
+
+    <div class="mb-2">
+        <label>Startsaldo</label>
+        <InputNumber class="form-control" @bind-Value="_model.InitialBalance" />
+    </div>
+
+    <button type="submit" class="btn btn-primary mt-2">Skapa konto</button>
+</EditForm>
+
+<br/>
+
+<h3>Konton:</h3>
+@if (_accounts.Any())
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Namn</th>
+                <th>Typ</th>
+                <th>Valuta</th>
+                <th>Saldo</th>
+                <th></th>
+            </tr>
+        </thead>
+    <tbody>
+    @foreach (var account in _accounts)
+    {
+        <tr>
+            <td>@account.Name</td>
+            <td>@account.AccountType</td>
+            <td>@account.Currency</td>
+            <td>@account.Balance.ToString("N2")</td>
+            <td>
+                <button class="btn btn-danger btn-sm" @onclick="() => DeleteAccountAsync(account.Id)">Ta bort</button>
+            </td>
+        </tr>
+    }
+        </tbody>
+    </table>
+}
+else
+{
+    <p>Inga konton skapade än.</p>
+}
+
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAccountsAsync();
+    }
+    
+    private CreateAccountModel _model = new();
+    private string? _successMessage;
+    private IReadOnlyList<BankAccount> _accounts = Array.Empty<BankAccount>();
+
+    private class CreateAccountModel
+    {
+        [Required(ErrorMessage = "Namn på kontot är obligatoriskt")]
+        [StringLength(50, ErrorMessage = "Namn på kontot får inte överstiga 50 tecken")]
+        public string Name { get; set; } = string.Empty;
+
+        public AccountType Type { get; set; }
+        public CurrencyType Currency { get; set; } = CurrencyType.SEK;
+
+        [Range(0, double.MaxValue, ErrorMessage = "Saldot kan inte vara negativt")]
+        public decimal InitialBalance { get; set; }
+    }
+    
+    private async Task LoadAccountsAsync()
+    {
+        _accounts = await AccountService.GetAccountsAsync();
+    }
+
+    private async Task CreateAsync()
+    {
+        await AccountService.CreateAccountAsync(_model.Name, _model.Type, _model.Currency, _model.InitialBalance);
+        _successMessage = $"Kontot '{_model.Name}' har skapats.";
+        _model = new();
+        await LoadAccountsAsync();
+        StateHasChanged();
+
+        //await Task.Delay(2000);
+        //NavigationManager.NavigateTo("/");
+    }
+    private async Task DeleteAccountAsync(Guid accountId)
+    {
+        await AccountService.DeleteAccountAsync(accountId);
+        await LoadAccountsAsync();
+        StateHasChanged();
+    }
+}
