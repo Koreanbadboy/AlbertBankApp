@@ -17,4 +17,4 @@ builder.Services.AddScoped<IAccountService, AccountService>();
 builder.Services.AddScoped<ILocalStorageService, LocalStorageService>();
 
 
-await builder.Build().RunAsync();
+await builder.Build().RunAsync();//
