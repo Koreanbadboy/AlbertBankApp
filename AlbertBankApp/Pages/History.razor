@@ -1,0 +1,244 @@
+@page "/History"
+@using AlbertBankApp.Domain
+@using AlbertBankApp.Interfaces
+@using AlbertBankApp.Services
+@inject IAccountService AccountService  
+@inject ILocalStorageService LocalStorageService
+
+<!-- konto -->
+<div class="mb-3" style="max-width: 420px;">
+    <label class="form-label">Välj konto..</label>
+    <InputSelect @bind-Value="SelectedAccountId" class="form-select">
+        <option value="">-- Alla konton --</option>
+        @foreach (var account in _accounts)
+        {
+            <option value="@account.Id">@account.Name</option>
+        }
+    </InputSelect>
+</div>
+
+<!-- Historik -->
+@if (_transactions is null)
+{
+    <div class="alert alert-light border" style="max-width: 720px;">
+        Laddar transaktioner...
+    </div>
+}
+else if (!_transactions.Any())
+{
+    <div class="alert alert-light border" style="max-width: 720px;">
+        Inga transaktioner hittades.
+    </div>
+}
+else
+{
+    <!-- Lista för valt konto eller alla konton -->
+    <div class="table-responsive" style="max-width: 900px;">
+        <table class="table table-striped align-middle">
+            <thead class="table-light">
+            <tr>
+                <th style="cursor: pointer; user-select: none;" @onclick="ToggleDateSort">
+                    Datum @(_sortDescending ? "▼" : "▲")
+                </th>
+                <th>Typ</th>
+                <th class="text-end">Belopp</th>
+                <th>Motpart</th>
+                <th>Beskrivning</th>
+            </tr>
+            </thead>
+            <tbody>
+            @foreach (var tx in GetSortedTransactions())
+            {
+                <tr>
+                    <td>@tx.TimeStamp.ToLocalTime().ToString("yyyy-MM-dd")</td>
+                    <td>@GetTransactionTypeForDisplay(tx)</td>
+                    <td class="text-end @AmountTone(tx)">@FormatAmount(tx)</td>
+                    <td>@GetOtherPartyName(tx)</td>
+                    <td>@tx.Note</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+}
+
+@code {
+    private List<BankAccount> _accounts = new();
+    private List<Transaction>? _transactions = null;
+    private string? _errorMessage;
+    private string _selectedAccountIdString = string.Empty;
+    private bool _sortDescending = true; // Default: nyaste först
+
+    private string SelectedAccountId
+    {
+        get => _selectedAccountIdString;
+        set
+        {
+            if (_selectedAccountIdString != value)
+            {
+                _selectedAccountIdString = value;
+                _ = LocalStorageService.SetItemAsync("selectedAccountId", value);
+                _ = LoadTransactionsAsync();
+            }
+        }
+    }
+    
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _accounts = (await AccountService.GetAccountsAsync()).ToList();
+            
+            // Ladda sparat konto från localStorage
+            var saved = await LocalStorageService.GetItemAsync<string>("selectedAccountId");
+            if (!string.IsNullOrEmpty(saved))
+                _selectedAccountIdString = saved;
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"FEL vid hämtning av konton: {ex.Message}";
+        }
+        _ = LoadTransactionsAsync();
+    }
+
+    private void ToggleDateSort()
+    {
+        _sortDescending = !_sortDescending;
+        StateHasChanged();
+    }
+
+    private IEnumerable<Transaction> GetSortedTransactions()
+    {
+        if (_transactions == null) return Enumerable.Empty<Transaction>();
+        
+        return _sortDescending 
+            ? _transactions.OrderByDescending(t => t.TimeStamp)
+            : _transactions.OrderBy(t => t.TimeStamp);
+    }
+
+    private async Task LoadTransactionsAsync()
+    {    
+        if (!Guid.TryParse(SelectedAccountId, out var accountId))
+        {
+            if (!_accounts.Any())
+            {
+                _transactions = new List<Transaction>();
+                StateHasChanged();
+                return;
+            }
+
+            _transactions = null;
+            _errorMessage = null;
+            StateHasChanged();
+
+            try
+            {
+                var tasks = _accounts.Select(a => AccountService.GetTransactionsAsync(a.Id));
+                var results = await Task.WhenAll(tasks);
+                _transactions = results.SelectMany(r => r).ToList();
+            }
+            catch (Exception ex)
+            {
+                _errorMessage = $"Ett fel inträffade vid hämtning av transaktioner: {ex.Message}";
+                _transactions = new List<Transaction>();
+            }
+            finally
+            {
+                StateHasChanged();
+            }
+
+            return;
+        }
+        _transactions = null;
+        _errorMessage = null;
+        StateHasChanged();
+
+        try
+        {
+            _transactions = (await AccountService.GetTransactionsAsync(accountId)).ToList();
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Ett fel inträffade vid hämtning av transaktioner: {ex.Message}";
+            _transactions = new List<Transaction>();
+        }
+        finally
+        {
+            StateHasChanged();
+        }
+    }
+
+    private string GetOtherPartyName(Transaction tx)
+    {
+        var fromName = AccountName(tx.FromAccountId);
+        var toName = AccountName(tx.ToAccountId);
+
+        if (Guid.TryParse(SelectedAccountId, out var accountId))
+        {
+            if (tx.FromAccountId == accountId) return toName;
+            if (tx.ToAccountId == accountId) return fromName; 
+        }
+        return $"{fromName} → {toName}";
+    }
+
+    private string GetTransactionTypeForDisplay(Transaction tx)
+    {
+        var isToInternal = tx.ToAccountId.HasValue && _accounts.Any(a => a.Id == tx.ToAccountId.Value);
+        var isFromInternal = tx.FromAccountId.HasValue && _accounts.Any(a => a.Id == tx.FromAccountId.Value);
+
+        if (Guid.TryParse(SelectedAccountId, out var accountId))
+        {
+            if (tx.FromAccountId == accountId)
+            {
+                return "Överfört";
+            }
+            if (tx.ToAccountId == accountId)
+            {
+                return "Mottaget";
+            }
+        }
+        
+        if (isFromInternal && isToInternal)
+        {
+            return "Överföring";
+        }
+        if (isFromInternal)
+        {
+            return "Uttag";
+        }
+        if (isToInternal)
+        {
+            return "Insättning";
+        }
+
+        return tx.TransactionType.ToString();
+    }
+
+    private string AccountName(Guid? accountId)
+    {
+        if (!accountId.HasValue || accountId.Value == Guid.Empty)
+            return "Extern";
+
+        var acc = _accounts.FirstOrDefault(a => a.Id == accountId.Value);
+        if (acc != null)
+            return acc.Name;
+
+        return "Okänt konto";
+    }
+
+    private string FormatAmount(Transaction tx)
+    {
+        if (!Guid.TryParse(SelectedAccountId, out var parsedAccountId))
+            return tx.Amount.ToString("C");
+
+        return Math.Abs(tx.Amount).ToString("C");
+    }
+
+    private string AmountTone(Transaction tx)
+    {
+        if (!Guid.TryParse(SelectedAccountId, out var parsedAccountId))
+            return string.Empty;
+
+        return tx.FromAccountId == parsedAccountId ? "text-danger" : "text-success";
+    }
+}

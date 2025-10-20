@@ -100,7 +100,7 @@ else
         _history = await LocalStorageService.GetItemAsync<List<Transaction>>("TransactionHistory") ?? new List<Transaction>();
     }
 
-    private void FromAccountChanged()
+    private void FromAccountChanged()   
     {
         _toAccounts = _accounts.Where(a => a.Id != _transferModel.FromAccountId).ToList();
         if (_toAccounts.All(a => a.Id != _transferModel.ToAccountId))

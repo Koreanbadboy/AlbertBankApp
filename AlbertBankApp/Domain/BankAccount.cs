@@ -23,6 +23,8 @@ public class BankAccount
             Id = Guid.NewGuid(),
             TimeStamp = DateTime.UtcNow,
             Amount = amount,
+            ToAccountId = this.Id,
+            TransactionType = TransactionType.Deposit,
             Note = note ?? "Insättning",
         });
     }
@@ -36,7 +38,9 @@ public class BankAccount
         {
             Id = Guid.NewGuid(),
             TimeStamp = DateTime.UtcNow,
-            Amount = -amount,
+            Amount = amount,
+            FromAccountId = this.Id,
+            TransactionType = TransactionType.Withdrawal,
             Note = note ?? "Uttag",
         });
     }

@@ -110,8 +110,34 @@ public class AccountService : IAccountService
         if (fromAccount.Balance < amount)
             throw new InvalidOperationException("Otillräckliga medel på från-kontot.");
         
-        fromAccount.Withdraw(amount, $"Överföring till {toAccount.Name}");
-        toAccount.Deposit(amount, $"Överföring från {fromAccount.Name}");
+        // Uppdatera balanserna
+        fromAccount.Balance -= amount;
+        toAccount.Balance += amount;
+        
+        // Skapa överföringstransaktion för från-kontot
+        fromAccount.Transactions.Add(new Transaction
+        {
+            Id = Guid.NewGuid(),
+            TimeStamp = DateTime.UtcNow,
+            Amount = amount,
+            FromAccountId = fromAccountId,
+            ToAccountId = toAccountId,
+            TransactionType = TransactionType.Transfer,
+            Note = $"Överföring till {toAccount.Name}",
+        });
+        
+        // Skapa överföringstransaktion för till-kontot
+        toAccount.Transactions.Add(new Transaction
+        {
+            Id = Guid.NewGuid(),
+            TimeStamp = DateTime.UtcNow,
+            Amount = amount,
+            FromAccountId = fromAccountId,
+            ToAccountId = toAccountId,
+            TransactionType = TransactionType.Transfer,
+            Note = $"Överföring från {fromAccount.Name}",
+        });
+        
         await SaveAsync();
     }
 }
