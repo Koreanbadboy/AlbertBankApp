@@ -8,12 +8,12 @@ var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
 
-// Ändrat från 'sp' till '_' för att undvika varning om oanvänd parameter
+// ÄNDRAT  från 'sp' till '_' för att undvika varning om oanvänd parameter
 builder.Services.AddScoped(_ => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
 
 builder.Services.AddScoped<IAccountService, AccountService>();
-// Tillagd idag - Registrerar LocalStorageService så den kan injiceras i komponenter
-// Registrerad som interface för att möjliggöra dependency injection i både History och NewTransaction
+// ÄNDRAT Tillagd idag - Registrerar LocalStorageService så den kan injiceras i komponenter
+// ÄNDRAT Registrerad som interface för att möjliggöra dependency injection i både History och NewTransaction
 builder.Services.AddScoped<ILocalStorageService, LocalStorageService>();
 
 
