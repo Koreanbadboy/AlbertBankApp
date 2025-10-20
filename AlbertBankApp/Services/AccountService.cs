@@ -110,29 +110,32 @@ public class AccountService : IAccountService
         if (fromAccount.Balance < amount)
             throw new InvalidOperationException("Otillräckliga medel på från-kontot.");
         
-        // Uppdatera balanserna
+        // Uppdaterad idag - Ändrat från att använda Withdraw/Deposit till att direkt uppdatera balanserna
+        // Detta ger bättre kontroll över transaktionerna som skapas
         fromAccount.Balance -= amount;
         toAccount.Balance += amount;
         
-        // Skapa överföringstransaktion för från-kontot
+        // Tillagd idag - Skapa överföringstransaktion för från-kontot med korrekt TransactionType.Transfer
+        // Detta fixar problemet där transaktioner felaktigt visades som "Deposit" istället för "Överföring"
         fromAccount.Transactions.Add(new Transaction
         {
             Id = Guid.NewGuid(),
             TimeStamp = DateTime.UtcNow,
             Amount = amount,
-            FromAccountId = fromAccountId,
-            ToAccountId = toAccountId,
-            TransactionType = TransactionType.Transfer,
+            FromAccountId = fromAccountId, // Visar varifrån pengarna kommer
+            ToAccountId = toAccountId, // Visar vart pengarna går
+            TransactionType = TransactionType.Transfer, // Korrekt typ för överföring
             Note = $"Överföring till {toAccount.Name}",
         });
         
-        // Skapa överföringstransaktion för till-kontot
+        // Tillagd idag - Skapa överföringstransaktion för till-kontot
+        // Båda kontona får en transaktion så historiken blir korrekt för båda
         toAccount.Transactions.Add(new Transaction
         {
             Id = Guid.NewGuid(),
             TimeStamp = DateTime.UtcNow,
             Amount = amount,
-            FromAccountId = fromAccountId,
+            FromAccountId = fromAccountId, // Samma from/to som ovan för korrekt spårning
             ToAccountId = toAccountId,
             TransactionType = TransactionType.Transfer,
             Note = $"Överföring från {fromAccount.Name}",

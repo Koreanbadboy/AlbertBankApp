@@ -12,6 +12,7 @@ public class BankAccount
     public DateTime LastUpdated { get; private set; }
     public List<Transaction> Transactions { get; set; } = new();
 
+    // Uppdaterad idag - Lägger till korrekt TransactionType och ToAccountId
     public void Deposit(decimal amount, string? note = null)
     {
         if(amount <= 0) 
@@ -23,12 +24,13 @@ public class BankAccount
             Id = Guid.NewGuid(),
             TimeStamp = DateTime.UtcNow,
             Amount = amount,
-            ToAccountId = this.Id,
-            TransactionType = TransactionType.Deposit,
+            ToAccountId = this.Id, // Tillagd - visar att pengarna går till detta konto
+            TransactionType = TransactionType.Deposit, // Tillagd - explicit typ
             Note = note ?? "Insättning",
         });
     }
 
+    // Uppdaterad idag - Lägger till korrekt TransactionType och FromAccountId
     public void Withdraw(decimal amount, string? note = null)
     {
         if(amount < 0) throw new ArgumentOutOfRangeException(nameof(amount),"Beloppet måste vara positivt");
@@ -38,9 +40,9 @@ public class BankAccount
         {
             Id = Guid.NewGuid(),
             TimeStamp = DateTime.UtcNow,
-            Amount = amount,
-            FromAccountId = this.Id,
-            TransactionType = TransactionType.Withdrawal,
+            Amount = amount, // Ändrat från -amount (negativt belopp sparas inte längre)
+            FromAccountId = this.Id, // Tillagd - visar att pengarna går från detta konto
+            TransactionType = TransactionType.Withdrawal, // Tillagd - explicit typ
             Note = note ?? "Uttag",
         });
     }
