@@ -67,6 +67,7 @@ else
                         <th>Från konto</th>
                         <th>Till konto</th>
                         <th>Belopp</th>
+                        <th></th> <!-- tom delete kolumn -->
                     </tr>
                 </thead>
                 <tbody>
@@ -77,6 +78,9 @@ else
                             <td>@transaction.FromAccountName</td>
                             <td>@transaction.ToAccountName</td>
                             <td>@transaction.Amount.ToString("C")</td>
+                            <td>
+                                <button class="btn btn-danger btn-sm" @onclick="() => DeleteTranscation(transaction)">Ta bort</button> <!-- Delete button -->
+                            </td>
                         </tr>
                     }
                 </tbody>
@@ -158,5 +162,11 @@ else
         [Required]
         [Range(0.01, double.MaxValue, ErrorMessage = "Belopp måste vara större än 0")]
         public decimal Amount { get; set; }
+    }
+    // Metod för a bort knapp
+    private async Task DeleteTranscation(Transaction transaction)
+    {
+        _history.Remove(transaction);
+        await LocalStorageService.SetItemAsync("TransactionHistory", _history);
     }
 }
