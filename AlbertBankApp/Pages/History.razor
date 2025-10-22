@@ -43,17 +43,21 @@ else
                 </th>
                 <th>Motpart</th>
                 <th>Beskrivning</th> 
+                <th></th>
             </tr>
             </thead>
             <tbody>
             @foreach (var tx in GetSortedTransactions()) 
             {
                 <tr>
-                    <td>@tx.TimeStamp.ToLocalTime().ToString("yyyy-MM-dd")</td> 
+                    <td>@tx.LastUpdated.ToLocalTime().ToString("yyyy-MM-dd")</td> 
                     <td>@GetTransactionTypeForDisplay(tx)</td>
                     <td class="text-end @AmountTone(tx)">@FormatAmount(tx)</td> 
                     <td>@GetOtherPartyName(tx)</td> 
                     <td>@tx.Note</td>
+                    <td>
+                        <button class="btn btn-danger btn-sm" @onclick="() => DeleteTransaction(tx)">Ta bort</button> <!-- Delete button -->
+                    </td>
                 </tr>
             }
             </tbody>
@@ -260,7 +264,16 @@ else
                 : _transactions.OrderBy(t => t.Amount);
     
         return _sortDescending
-            ? _transactions.OrderByDescending(t => t.TimeStamp)
-            : _transactions.OrderBy(t => t.TimeStamp);
+            ? _transactions.OrderByDescending(t => t.LastUpdated)
+            : _transactions.OrderBy(t => t.LastUpdated);
+    }
+    private async Task DeleteTransaction(Transaction tx)
+    {
+        // Remove from backend (implement this in your service)
+        await AccountService.DeleteTransactionAsync(tx.Id);
+    
+        // Remove from local list and refresh UI
+        _transactions?.Remove(tx);
+        StateHasChanged();
     }
 }

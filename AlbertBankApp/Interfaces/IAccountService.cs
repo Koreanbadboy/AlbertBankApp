@@ -11,4 +11,5 @@ public interface IAccountService
     Task<IReadOnlyList<Domain.Transaction>> GetTransactionsAsync(Guid accountId);
     Task DeleteAccountAsync(Guid accountId);
     Task TransferAsync(Guid fromAccountId, Guid toAccountId, decimal amount);
+    Task DeleteTransactionAsync(Guid txId);
 }
