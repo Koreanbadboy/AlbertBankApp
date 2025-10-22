@@ -38,7 +38,9 @@ else
                     Datum @(_sortDescending ? "▼" : "▲") 
                 </th>
                 <th>Typ</th> 
-                <th class="text-end">Belopp</th>
+                <th style="cursor: pointer; user-select: none;" @onclick="ToggleAmountSort">
+                    Belopp @(_sortByAmount ? (_sortAmountDescending ? "▼" : "▲") : "")
+                </th>
                 <th>Motpart</th>
                 <th>Beskrivning</th> 
             </tr>
@@ -100,23 +102,7 @@ else
         // Ladda transaktioner för alla konton som standard - ändrat från att inte ladda något
         _ = LoadTransactionsAsync();
     }
-
-    // Ny metod för att växla sorteringsordning
-    private void ToggleDateSort()
-    {
-        _sortDescending = !_sortDescending;
-        StateHasChanged();
-    }
-
-    // Ny metod som returnerar sorterade transaktioner baserat på vald ordning
-    private IEnumerable<Transaction> GetSortedTransactions()
-    {
-        if (_transactions == null) return Enumerable.Empty<Transaction>();
-        
-        return _sortDescending 
-            ? _transactions.OrderByDescending(t => t.TimeStamp)
-            : _transactions.OrderBy(t => t.TimeStamp);
-    }
+    
 
     // Uppdaterad metod - hämtar nu transaktioner för alla konton när inget specifikt konto är valt
     private async Task LoadTransactionsAsync()
@@ -197,10 +183,9 @@ else
 
         if (Guid.TryParse(SelectedAccountId, out var accountId))
         {
-            
             if (tx.FromAccountId == accountId)
             {
-                return "Överfört";
+                return "Överföring";
             }
             if (tx.ToAccountId == accountId)
             {
@@ -247,5 +232,35 @@ else
             return string.Empty;
 
         return tx.FromAccountId == parsedAccountId ? "text-danger" : "text-success";
+    }
+    private bool _sortAmountDescending = true;
+    private bool _sortByAmount = false;
+    
+    private void ToggleAmountSort()
+    {
+        _sortByAmount = true;
+        _sortAmountDescending = !_sortAmountDescending;
+        StateHasChanged();
+    }
+    
+    private void ToggleDateSort()
+    {
+        _sortByAmount = false;
+        _sortDescending = !_sortDescending;
+        StateHasChanged();
+    }
+    //sorterar både datum och belopp
+    private IEnumerable<Transaction> GetSortedTransactions()
+    {
+        if (_transactions == null) return Enumerable.Empty<Transaction>();
+    
+        if (_sortByAmount)
+            return _sortAmountDescending
+                ? _transactions.OrderByDescending(t => t.Amount)
+                : _transactions.OrderBy(t => t.Amount);
+    
+        return _sortDescending
+            ? _transactions.OrderByDescending(t => t.TimeStamp)
+            : _transactions.OrderBy(t => t.TimeStamp);
     }
 }
