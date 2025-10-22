@@ -1,7 +1,4 @@
 @page "/History"
-@using AlbertBankApp.Domain
-@using AlbertBankApp.Interfaces
-@using AlbertBankApp.Services
 @inject IAccountService AccountService  
 @inject ILocalStorageService LocalStorageService
 
@@ -9,7 +6,7 @@
 <div class="mb-3" style="max-width: 420px;">
     <label class="form-label">Välj konto..</label>
     <InputSelect @bind-Value="SelectedAccountId" class="form-select">
-        <option value="">-- Alla konton --</option> <!-- Ändrat från "Välj ett konto" för att visa alla transaktioner som standard -->
+        <option value="">-- Alla konton --</option>
         @foreach (var account in _accounts)
         {
             <option value="@account.Id">@account.Name</option>
@@ -21,13 +18,13 @@
 @if (_transactions is null)
 {
     <div class="alert alert-light border" style="max-width: 720px;">
-        Laddar transaktioner... <!-- Visar laddningsmeddelande medan transaktioner hämtas -->
+        Laddar transaktioner... 
     </div>
 }
 else if (!_transactions.Any())
 {
     <div class="alert alert-light border" style="max-width: 720px;">
-        Inga transaktioner hittades. <!-- Ändrat meddelande för att passa både specifika konton och alla konton -->
+        Inga transaktioner hittades. 
     </div>
 }
 else
@@ -37,24 +34,23 @@ else
         <table class="table table-striped align-middle">
             <thead class="table-light">
             <tr>
-                <!-- Klickbar datumkolumn för sortering - tillagd idag -->
                 <th style="cursor: pointer; user-select: none;" @onclick="ToggleDateSort">
-                    Datum @(_sortDescending ? "▼" : "▲") <!-- Visar sorteringsordning med pilar -->
+                    Datum @(_sortDescending ? "▼" : "▲") 
                 </th>
-                <th>Typ</th> <!-- Visar "Överfört"/"Mottaget" för specifikt konto, "Överföring"/"Insättning"/"Uttag" för alla konton -->
+                <th>Typ</th> 
                 <th class="text-end">Belopp</th>
-                <th>Motpart</th> <!-- Ändrat från "Från → Till" för att göra det tydligare -->
-                <th>Beskrivning</th> <!-- Ändrat från "Anteckningar" -->
+                <th>Motpart</th>
+                <th>Beskrivning</th> 
             </tr>
             </thead>
             <tbody>
-            @foreach (var tx in GetSortedTransactions()) //<!-- Använder sorteringsmetod istället för direkt OrderByDescending -->
+            @foreach (var tx in GetSortedTransactions()) 
             {
                 <tr>
-                    <td>@tx.TimeStamp.ToLocalTime().ToString("yyyy-MM-dd")</td> <!--Visar bara datum utan tid -->
-                    <td>@GetTransactionTypeForDisplay(tx)</td> <!--Dynamisk typ baserad på valt konto -->
-                    <td class="text-end @AmountTone(tx)">@FormatAmount(tx)</td> <!--Röd för utgående, grön för inkommande -->
-                    <td>@GetOtherPartyName(tx)</td> <!--/>Visar motparten i transaktionen -->
+                    <td>@tx.TimeStamp.ToLocalTime().ToString("yyyy-MM-dd")</td> 
+                    <td>@GetTransactionTypeForDisplay(tx)</td>
+                    <td class="text-end @AmountTone(tx)">@FormatAmount(tx)</td> 
+                    <td>@GetOtherPartyName(tx)</td> 
                     <td>@tx.Note</td>
                 </tr>
             }
@@ -187,16 +183,13 @@ else
 
         if (Guid.TryParse(SelectedAccountId, out var accountId))
         {
-            // Om ett specifikt konto är valt, visa bara motparten
-            if (tx.FromAccountId == accountId) return toName; // Vi skickade, visa mottagaren
-            if (tx.ToAccountId == accountId) return fromName; // Vi tog emot, visa avsändaren
+            if (tx.FromAccountId == accountId) return toName; 
+            if (tx.ToAccountId == accountId) return fromName; 
         }
         
-        // För "Alla konton"-vyn, visa både från och till
         return $"{fromName} → {toName}";
     }
-
-    // Uppdaterad metod - visar nu dynamisk typ baserad på valt konto och transaktionsriktning
+    
     private string GetTransactionTypeForDisplay(Transaction tx)
     {
         var isToInternal = tx.ToAccountId.HasValue && _accounts.Any(a => a.Id == tx.ToAccountId.Value);
@@ -204,39 +197,35 @@ else
 
         if (Guid.TryParse(SelectedAccountId, out var accountId))
         {
-            // För specifikt konto: visa bara "Överfört" eller "Mottaget"
+            
             if (tx.FromAccountId == accountId)
             {
                 return "Överfört";
             }
             if (tx.ToAccountId == accountId)
             {
-                return "Mottaget";
+                return "Insättning";
             }
         }
-        
-        // För "Alla konton"-vyn: visa mer detaljerad information
         if (isFromInternal && isToInternal)
         {
-            return "Överföring"; // Intern överföring mellan egna konton
+            return "Överföring"; 
         }
         if (isFromInternal)
         {
-            return "Uttag"; // Pengar ut från ett internt konto till externt
+            return "Uttag"; 
         }
         if (isToInternal)
         {
-            return "Insättning"; // Pengar in till ett internt konto från externt
+            return "Insättning"; 
         }
 
-        return tx.TransactionType.ToString(); // Fallback
+        return tx.TransactionType.ToString();
     }
-
-    // Hjälpmetod för att hämta kontonamn
     private string AccountName(Guid? accountId)
     {
         if (!accountId.HasValue || accountId.Value == Guid.Empty)
-            return "Extern"; // Ändrat från "N/A" för tydligare text
+            return "Extern";
 
         var acc = _accounts.FirstOrDefault(a => a.Id == accountId.Value);
         if (acc != null)
@@ -244,17 +233,14 @@ else
 
         return "Okänt konto";
     }
-
-    // Uppdaterad metod - visar nu belopp utan +/- tecken (färgen visar riktningen istället)
     private string FormatAmount(Transaction tx)
     {
         if (!Guid.TryParse(SelectedAccountId, out var parsedAccountId))
             return tx.Amount.ToString("C");
 
-        return Math.Abs(tx.Amount).ToString("C"); // Ändrat: tar bort tecknet, använder färg istället
+        return Math.Abs(tx.Amount).ToString("C");
     }
-
-    // Metod för att bestämma färg på beloppet (röd för utgående, grön för inkommande)
+    
     private string AmountTone(Transaction tx)
     {
         if (!Guid.TryParse(SelectedAccountId, out var parsedAccountId))
