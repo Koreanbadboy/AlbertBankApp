@@ -12,4 +12,6 @@ public interface IAccountService
     Task DeleteAccountAsync(Guid accountId);
     Task TransferAsync(Guid fromAccountId, Guid toAccountId, decimal amount);
     Task DeleteTransactionAsync(Guid txId);
+    List<IBankAccount> GetAccounts();
+    Task SaveAccountsAsync();
 }

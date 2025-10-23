@@ -62,7 +62,7 @@ else
             @foreach (var tx in GetFilteredAndSortedTransactions(StartDate, EndDate)) 
             {
                 <tr>
-                    <td>@tx.LastUpdated.ToLocalTime().ToString("yyyy-MM-dd")</td> 
+                    <td>@tx.LastUpdated.ToString("yyyy-MM-dd")</td> 
                     <td>@GetTransactionTypeForDisplay(tx)</td>
                     <td class="text-end @AmountTone(tx)">@FormatAmount(tx)</td> 
                     <td>@GetOtherPartyName(tx)</td> 

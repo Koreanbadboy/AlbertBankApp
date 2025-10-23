@@ -160,4 +160,14 @@ public class AccountService : IAccountService
             }
         }
     }
+
+    public List<IBankAccount> GetAccounts()
+    {
+        return _accounts.Cast<IBankAccount>().ToList();
+    }
+
+    public async Task SaveAccountsAsync()
+    {
+        await _storage.SetItemAsync(StorageKey, _accounts);
+    }
 }

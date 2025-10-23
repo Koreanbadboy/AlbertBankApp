@@ -1,0 +1,157 @@
+@page "/TransactionHistory"
+@inject IAccountService Accountservice
+@using System.Linq
+
+<h3>TransactionHistory</h3>
+
+@if (_accounts.Count == 0)
+{
+    <p>Inga konton</p>
+}
+else
+{
+    <div class="mb-2">
+        <label>Välj konto</label>
+        <InputSelect TValue="Guid"
+                     class="form-select"
+                     id="accountSelect"
+                     @bind-Value="_selectedAccountId"> <!-- Ändrat till @bind-Value för korrekt kontoval -->
+            @foreach (var account in _accounts)
+            {
+                <option value="@account.Id">@account.Name - Saldo: @account.Balance</option>
+            }
+        </InputSelect>
+    </div>
+}
+
+<!-- sortering -->
+<div class="mb-2">
+    <button class="btn btn-sm" @onclick="() => SetSort(SortKey.Date)">
+        Sortera: Datum @(currentKey == SortKey.Date ? (descending ? "▲" : "▼") : "")
+    </button>
+    <button class="btn btn-sm" @onclick="() => SetSort(SortKey.Amount)">
+        Sortera: Belopp @(currentKey == SortKey.Amount ? (descending ? "▲" : "▼") : "")
+    </button>
+</div>
+
+@if (!(_selectedAccount?.Transactions?.Any() ?? false))
+{
+    <p>Inga Transaktioner ännu.</p>
+}
+else
+{
+    <table class="table table-sm">
+        <thead>
+            <tr>
+                <th>Datum</th>
+                <th>Belopp</th>
+                <th>Transaktionstyp</th>
+                <th>Saldo efter</th>
+                <th>Från - Till</th>
+                <th></th> <!-- Delete column -->
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var transaction in SortedTransaction())
+            {
+                <tr>
+                    <td>@transaction.TimeStamp.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</td>
+                    <td>@transaction.Amount</td>
+                    <td>@transaction.TransactionType</td>
+                    <td>@transaction.BalanceAfter</td>
+                    <td>
+                        @{
+                            var fromAccount = _accounts.FirstOrDefault(a => a.Id == transaction.FromAccountId);
+                            var toAccount = _accounts.FirstOrDefault(a => a.Id == transaction.ToAccountId);
+                        }
+                        @((fromAccount?.Name ?? "Extern") + " → " + (toAccount?.Name ?? "Extern"))
+                    </td>
+                    <td>
+                        <button class="btn btn-danger btn-sm" @onclick="() => DeleteTransaction(transaction)">
+                            Ta bort</button> <!-- Lagt till delete-knapp för att ta bort transaktion -->
+                    </td>
+                </tr>
+            }
+        </tbody> 
+    </table>
+}
+
+@code {
+    private List<BankAccount> _accounts = new();
+    private BankAccount? _selectedAccount;
+    private Guid _selectedAccountIdBacking;
+    private SortKey currentKey = SortKey.Date;
+    private bool descending = true;
+
+    private Guid _selectedAccountId
+    {
+        get => _selectedAccountIdBacking;
+        set
+        {
+            _selectedAccountIdBacking = value;
+            _selectedAccount = _accounts.FirstOrDefault(a => a.Id == value); // Uppdaterar valt konto vid byte
+        }
+    }
+
+    private enum SortKey
+    {
+        Date,
+        Amount
+    }
+
+    private void SetSort(SortKey sortKey)
+    {
+        if (currentKey == sortKey)
+            descending = !descending;
+        else
+        {
+            currentKey = sortKey;
+            descending = true;
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        _accounts = (await Accountservice.GetAccountsAsync()).ToList();
+        if (_accounts.Count > 0)
+        {
+            _selectedAccountId = _accounts[0].Id;
+            _selectedAccount = _accounts[0];
+        }
+        StateHasChanged();
+    }
+
+    public async Task RefreshAccountsAsync()
+    {
+        _accounts = (await Accountservice.GetAccountsAsync()).ToList();
+        _selectedAccount = _accounts.FirstOrDefault(a => a.Id == _selectedAccountId);
+        StateHasChanged();
+    }
+
+    private IEnumerable<Transaction> SortedTransaction()
+    {
+        if (_selectedAccount == null)
+            return Enumerable.Empty<Transaction>();
+
+        var sortedList = _selectedAccount.Transactions.AsEnumerable();
+        sortedList = currentKey switch
+        {
+            SortKey.Amount => (descending
+                ? sortedList.OrderByDescending(t => t.Amount)
+                : sortedList.OrderBy(t => t.Amount)),
+            _ => (descending
+                ? sortedList.OrderByDescending(t => t.TimeStamp)
+                : sortedList.OrderBy(t => t.TimeStamp))
+        };
+        return sortedList;
+    }
+    private async Task DeleteTransaction(Transaction transaction)
+    {
+        if (_selectedAccount != null)
+        {
+            _selectedAccount.Transactions.Remove(transaction); 
+            await Accountservice.SaveAccountsAsync(); 
+            await RefreshAccountsAsync(); 
+        }
+    }
+}
