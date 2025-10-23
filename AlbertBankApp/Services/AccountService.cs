@@ -111,14 +111,10 @@ public class AccountService : IAccountService
 
         if (fromAccount.Balance < amount)
             throw new InvalidOperationException("Otillräckliga medel på från-kontot.");
-
-        // Uppdaterad idag - Ändrat från att använda Withdraw/Deposit till att direkt uppdatera balanserna
-        // Detta ger bättre kontroll över transaktionerna som skapas
+        
         fromAccount.Balance -= amount;
         toAccount.Balance += amount;
-
-        // Tillagd idag - Skapa överföringstransaktion för från-kontot med korrekt TransactionType.Transfer
-        // Detta fixar problemet där transaktioner felaktigt visades som "Deposit" istället för "Överföring"
+        
         fromAccount.Transactions.Add(new Transaction
         {
             Id = Guid.NewGuid(),
@@ -129,9 +125,7 @@ public class AccountService : IAccountService
             TransactionType = TransactionType.Transfer, // Korrekt typ för överföring
             Note = $"Överföring till {toAccount.Name}",
         });
-
-        // Tillagd idag - Skapa överföringstransaktion för till-kontot
-        // Båda kontona får en transaktion så historiken blir korrekt för båda
+        
         toAccount.Transactions.Add(new Transaction
         {
             Id = Guid.NewGuid(),

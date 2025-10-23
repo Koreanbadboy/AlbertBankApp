@@ -1,6 +1,5 @@
 @page "/NewTransaction"
 @inject IAccountService AccountService
-@inject ILocalStorageService LocalStorageService
 <!-- linq kommands för filtrera datum-->
 <h3>Överföring</h3>
 
@@ -97,7 +96,8 @@ else
     {
         _accounts = (await AccountService.GetAccountsAsync()).ToList();
         _toAccounts = _accounts;
-        _history = await LocalStorageService.GetItemAsync<List<Transaction>>("TransactionHistory") ?? new List<Transaction>();
+        // Hämtar alla transaktioner för alla konton
+        _history = _accounts.SelectMany(a => a.Transactions).OrderByDescending(t => t.TimeStamp).ToList();
     }
 
     private void FromAccountChanged()   
@@ -119,32 +119,25 @@ else
                 _transferModel.FromAccountId,
                 _transferModel.ToAccountId,
                 _transferModel.Amount);
-            
-            var fromAccount = _accounts.First(a => a.Id == _transferModel.FromAccountId);
-            var toAccount = _accounts.First(a => a.Id == _transferModel.ToAccountId);
-
-            var tx = new Transaction
-            {
-                TimeStamp = DateTime.UtcNow,
-                Amount = _transferModel.Amount,
-                FromAccountId = fromAccount.Id,
-                ToAccountId = toAccount.Id,
-                FromAccountName = fromAccount.Name,
-                ToAccountName = toAccount.Name,
-                TransactionType = TransactionType.Transfer
-            };
-
-            _history.Add(tx);
-            
-            await LocalStorageService.SetItemAsync("TransactionHistory", _history);
-            
+            // Ladda om konton och historik efter överföring
             _accounts = (await AccountService.GetAccountsAsync()).ToList();
             _toAccounts = _accounts.Where(a => a.Id != _transferModel.FromAccountId).ToList();
+            _history = _accounts.SelectMany(a => a.Transactions).OrderByDescending(t => t.TimeStamp).ToList();
         }
         catch (Exception ex)
         {
             _errorMessage = ex.Message;
         }
+    }
+
+    // Metod för delete-knapp
+    private async Task DeleteTranscation(Transaction transaction)
+    {
+        // Ta bort transaktionen via service
+        await AccountService.DeleteTransactionAsync(transaction.Id);
+        // Ladda om konton och historik
+        _accounts = (await AccountService.GetAccountsAsync()).ToList();
+        _history = _accounts.SelectMany(a => a.Transactions).OrderByDescending(t => t.TimeStamp).ToList();
     }
 
     public class TransferModel
@@ -158,11 +151,5 @@ else
         [Required]
         [Range(0.01, double.MaxValue, ErrorMessage = "Belopp måste vara större än 0")]
         public decimal Amount { get; set; }
-    }
-    // Metod för a bort knapp
-    private async Task DeleteTranscation(Transaction transaction)
-    {
-        _history.Remove(transaction);
-        await LocalStorageService.SetItemAsync("TransactionHistory", _history);
     }
 }

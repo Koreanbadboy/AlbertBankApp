@@ -1,6 +1,5 @@
 @page "/History"
-@inject IAccountService AccountService  
-@inject ILocalStorageService LocalStorageService
+@inject IAccountService AccountService
 
 <h3>Historik</h3>
 
@@ -84,7 +83,7 @@ else
     private string _selectedAccountIdString = string.Empty;
     private bool _sortDescending = true; // Default: nyaste först - tillagd för sorteringsfunktionalitet
 
-    // Property med logik för att spara valt konto till localStorage
+    // Property med logik för att ladda transaktioner vid byte av konto
     private string SelectedAccountId
     {
         get => _selectedAccountIdString;
@@ -93,9 +92,7 @@ else
             if (_selectedAccountIdString != value)
             {
                 _selectedAccountIdString = value;
-                // Spara valt konto till localStorage så det kommer ihåg vid sidladdning
-                _ = LocalStorageService.SetItemAsync("selectedAccountId", value);
-                _ = LoadTransactionsAsync();
+                _ = LoadTransactionsAsync(); // Ladda transaktioner vid byte av konto
             }
         }
     }
@@ -105,22 +102,17 @@ else
         try
         {
             _accounts = (await AccountService.GetAccountsAsync()).ToList();
-            
-            // Ladda sparat konto från localStorage - tillagd idag
-            var saved = await LocalStorageService.GetItemAsync<string>("selectedAccountId");
-            if (!string.IsNullOrEmpty(saved))
-                _selectedAccountIdString = saved;
+            // Valt konto minns bara under sessionen
         }
         catch (Exception ex)
         {
             _errorMessage = $"FEL vid hämtning av konton: {ex.Message}";
         }
-        // Ladda transaktioner för alla konton som standard - ändrat från att inte ladda något
+        // Ladda transaktioner för alla konton som standard
         _ = LoadTransactionsAsync();
     }
     
-
-    // Uppdaterad metod - hämtar nu transaktioner för alla konton när inget specifikt konto är valt
+    // Hämtar transaktioner för valt konto eller alla konton
     private async Task LoadTransactionsAsync()
     {    
         if (!Guid.TryParse(SelectedAccountId, out var accountId))
