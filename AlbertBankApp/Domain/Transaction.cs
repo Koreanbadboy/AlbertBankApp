@@ -1,5 +1,8 @@
 namespace AlbertBankApp.Domain;
 
+/// <summary>
+/// Specifies the type of transaction: deposit, withdrawal, or transfer.
+/// </summary>
 public enum TransactionType
 {
     Deposit,

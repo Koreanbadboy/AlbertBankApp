@@ -2,6 +2,9 @@ using AlbertBankApp.Domain;
 
 namespace AlbertBankApp.Interfaces;
 
+/// <summary>
+/// Provides methods for managing bank accounts, including creation, transactions, and retrieval
+/// </summary>
 public interface IAccountService
 {
     Task<IReadOnlyList<BankAccount>> GetAccountsAsync();

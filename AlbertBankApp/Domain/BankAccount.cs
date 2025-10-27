@@ -6,6 +6,9 @@ using AlbertBankApp.Interfaces;
 
 namespace AlbertBankApp.Domain;
 
+/// <summary>
+/// Represents a bank account with balance management, transaction history, and support for deposits, withdrawals, and transfers.
+/// </summary>
 public class BankAccount : IBankAccount
 {
     public Guid Id { get; set; } = Guid.NewGuid();
@@ -23,7 +26,12 @@ public class BankAccount : IBankAccount
     private List<Transaction> _transactions = new();
     public IReadOnlyList<Transaction> Transactions => _transactions.AsReadOnly();
 
-    // EN ren Deposit
+    /// <summary>
+    /// Specific account for deposit
+    /// </summary>
+    /// <param name="amount">Specific amount</param>
+    /// <param name="note">Optinal note or description for the deposit</param>
+    /// <exception cref="ArgumentOutOfRangeException">Error message if deposit balace is negativ</exception>
     public void Deposit(decimal amount, string? note = null)
     {
         if (amount <= 0) throw new ArgumentOutOfRangeException(nameof(amount), "Beloppet måste vara positivt");
@@ -48,7 +56,13 @@ public class BankAccount : IBankAccount
         LastUpdated = now;
     }
 
-    // EN ren Withdraw
+    /// <summary>
+    /// Withdraws a specified amount from this account, with an optional note.
+    /// </summary>
+    /// <param name="amount">The amount to withdraw.</param>
+    /// <param name="note">Optional note or description for the withdrawal.</param>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown if the amount is not positive.</exception>
+    /// <exception cref="InvalidOperationException">Thrown if the account has insufficient funds.</exception>
     public void Withdraw(decimal amount, string? note = null)
     {
         if (amount <= 0) throw new ArgumentOutOfRangeException(nameof(amount), "Beloppet måste vara positivt");
@@ -74,7 +88,15 @@ public class BankAccount : IBankAccount
         LastUpdated = now;
     }
 
-    // Ny: överföring mellan konton – skapar en gemensam Transaction som läggs i båda kontonas internlista
+    /// <summary>
+    /// Transfers a specified amount from this account to a target account, with an optional note.
+    /// </summary>
+    /// <param name="target">The target bank account to transfer funds to.</param>
+    /// <param name="amount">The amount to transfer.</param>
+    /// <param name="note">Optional note or description for the transfer.</param>
+    /// <exception cref="ArgumentNullException">Thrown if the target account is null.</exception>
+    /// <exception cref="InvalidOperationException">Thrown if transferring to the same account or if funds are insufficient.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown if the amount is not positive.</exception>
     public void TransferTo(BankAccount target, decimal amount, string? note = null)
     {
         if (target is null) throw new ArgumentNullException(nameof(target));
@@ -83,10 +105,8 @@ public class BankAccount : IBankAccount
         if (amount > Balance) throw new InvalidOperationException("Otillräckliga medel för överföring.");
 
         var now = DateTime.UtcNow;
-
         var beforeSource = Balance;
-
-        // Uppdatera saldon
+        
         Balance -= amount;
         target.Balance += amount;
 
@@ -113,18 +133,34 @@ public class BankAccount : IBankAccount
         target.LastUpdated = now;
     }
 
-// ====== Explicit interface-implementation (legacy-signaturer) ======
+    /// <summary>
+    /// Deposits a specified amount into this account from another account, with an optional description.
+    /// </summary>
+    /// <param name="amount">The amount to deposit.</param>
+    /// <param name="fromAccountId">The ID of the account from which the funds are coming.</param>
+    /// <param name="fromAccountName">The name of the account from which the funds are coming.</param>
+    /// <param name="description">Optional description or note for the deposit.</param>
     void IBankAccount.Deposit(decimal amount, Guid fromAccountId, string fromAccountName, string description)
         => Deposit(amount, string.IsNullOrWhiteSpace(description)
             ? $"Insättning från {fromAccountName}"
             : description);
-
+    
+    /// <summary>
+    /// Withdraws a specified amount from this account to another account, with an optional description.
+    /// </summary>
+    /// <param name="amount">The amount to withdraw.</param>
+    /// <param name="toAccountId">The ID of the account to which the funds are sent.</param>
+    /// <param name="toAccountName">The name of the account to which the funds are sent.</param>
+    /// <param name="description">Optional description or note for the withdrawal.</param>
     void IBankAccount.Withdraw(decimal amount, Guid toAccountId, string toAccountName, string description)
         => Withdraw(amount, string.IsNullOrWhiteSpace(description)
             ? $"Uttag till {toAccountName}"
             : description);
 
-    // Valfritt: behåll dina Transfer/RemoveTransaction om du vill.
+    /// <summary>
+    /// Removes a transaction from the account by its unique identifier and updates the balance.
+    /// </summary>
+    /// <param name="transactionId">The unique identifier of the transaction to remove.</param>
     public void RemoveTransaction(Guid transactionId)
     {
         var tx = _transactions.FirstOrDefault(t => t.Id == transactionId);
@@ -142,12 +178,12 @@ public class BankAccount : IBankAccount
         Balance = newBalance;
         LastUpdated = DateTime.UtcNow;
     }
-
-    // Parameterless constructor required for JSON serialization/deserialization (LocalStorage)
-    // Keeps property setters public so deserializers can populate values.
+    
+    /// <summary>
+    /// Initializes a new instance of the "BankAccount" class with default values
+    /// </summary>
     public BankAccount()
     {
-        // default initialization; real values may be set by deserializer or parameterized ctor
         Id = Guid.NewGuid();
         Name = string.Empty;
         AccountType = default;

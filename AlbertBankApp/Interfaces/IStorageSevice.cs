@@ -1,5 +1,8 @@
 namespace AlbertBankApp.Interfaces;
 
+/// <summary>
+/// Defines asynchronous methods for saving and retrieving data from a storage provider
+/// </summary>
 public interface IStorageSevice
 {
         //Spara

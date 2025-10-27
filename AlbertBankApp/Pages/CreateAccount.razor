@@ -2,8 +2,6 @@
 @inject IAccountService AccountService
 @inject NavigationManager NavigationManager
 
-
-
 <h3>Skapa konto</h3>
 
 @if (!string.IsNullOrEmpty(_successMessage))
@@ -122,9 +120,6 @@ else
         _model = new();
         await LoadAccountsAsync();
         StateHasChanged();
-
-        //await Task.Delay(2000);
-        //NavigationManager.NavigateTo("/");
     }
     private async Task DeleteAccountAsync(Guid accountId)
     {

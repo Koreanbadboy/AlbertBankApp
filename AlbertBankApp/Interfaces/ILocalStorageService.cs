@@ -1,5 +1,8 @@
 namespace AlbertBankApp.Interfaces;
 
+/// <summary>
+/// Stores and saves data
+/// </summary>
 public interface ILocalStorageService
 {
     Task<T?> GetItemAsync<T>(string key);
