@@ -38,18 +38,10 @@ public class AccountService : IAccountService
     }
 
     public async Task<BankAccount> CreateAccountAsync(string name, AccountType accountType, CurrencyType currency,
-        decimal InitialBalance = 0)
+        decimal initialBalance = 0)
     {
         await EnsureLoadedAsync();
-        var newAccount = new BankAccount
-        {
-            Id = Guid.NewGuid(),
-            Name = name,
-            AccountType = accountType,
-            Currency = currency,
-            Balance = InitialBalance,
-            Transactions = new List<Transaction>()
-        };
+        var newAccount = new BankAccount(Guid.NewGuid(), name, accountType, currency, initialBalance);
 
         _accounts.Add(newAccount);
         await SaveAsync();
@@ -79,7 +71,7 @@ public class AccountService : IAccountService
         await EnsureLoadedAsync();
         var account = _accounts.FirstOrDefault(a => a.Id == accountId)
                       ?? throw new InvalidOperationException("Kontot hittades inte");
-        return account.Transactions.AsReadOnly();
+        return account.Transactions;
     }
 
     public async Task DeleteAccountAsync(Guid accountId)
@@ -109,33 +101,8 @@ public class AccountService : IAccountService
         if (fromAccount == null) throw new KeyNotFoundException("Från-kontot hittades inte.");
         if (toAccount == null) throw new KeyNotFoundException("Till-kontot hittades inte.");
 
-        if (fromAccount.Balance < amount)
-            throw new InvalidOperationException("Otillräckliga medel på från-kontot.");
-        
-        fromAccount.Balance -= amount;
-        toAccount.Balance += amount;
-        
-        fromAccount.Transactions.Add(new Transaction
-        {
-            Id = Guid.NewGuid(),
-            TimeStamp = DateTime.UtcNow,
-            Amount = amount,
-            FromAccountId = fromAccountId, // Visar varifrån pengarna kommer
-            ToAccountId = toAccountId, // Visar vart pengarna går
-            TransactionType = TransactionType.Transfer, // Korrekt typ för överföring
-            Note = $"Överföring till {toAccount.Name}",
-        });
-        
-        toAccount.Transactions.Add(new Transaction
-        {
-            Id = Guid.NewGuid(),
-            TimeStamp = DateTime.UtcNow,
-            Amount = amount,
-            FromAccountId = fromAccountId, // Samma from/to som ovan för korrekt spårning
-            ToAccountId = toAccountId,
-            TransactionType = TransactionType.Transfer,
-            Note = $"Överföring från {fromAccount.Name}",
-        });
+        // Use domain method that updates balances and creates a shared Transaction
+        fromAccount.TransferTo(toAccount, amount);
 
         await SaveAsync();
     }
@@ -145,10 +112,9 @@ public class AccountService : IAccountService
         await EnsureLoadedAsync();
         foreach (var account in _accounts)
         {
-            var tx = account.Transactions.FirstOrDefault(t => t.Id == txId);
-            if (tx != null)
+            if (account.Transactions.Any(t => t.Id == txId))
             {
-                account.Transactions.Remove(tx);
+                account.RemoveTransaction(txId);
                 await SaveAsync();
                 return;
             }

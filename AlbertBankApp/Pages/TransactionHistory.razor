@@ -1,6 +1,7 @@
 @page "/TransactionHistory"
 @inject IAccountService Accountservice
 @using System.Linq
+@using System.Globalization
 
 <!-- History for transaction -->
 <h3>TransactionHistory</h3>
@@ -16,7 +17,8 @@ else
         <InputSelect TValue="Guid"
                      class="form-select"
                      id="accountSelect"
-                     @bind-Value="_selectedAccountId"> <!-- Ändrat till @bind-Value för korrekt kontoval -->
+                     @bind-Value="SelectedAccountId">
+            <option value="@Guid.Empty">Alla konton</option>
             @foreach (var account in _accounts)
             {
                 <option value="@account.Id">@account.Name - Saldo: @account.Balance</option>
@@ -28,14 +30,20 @@ else
 <!-- Sorting -->
 <div class="mb-2">
     <button class="btn btn-sm" @onclick="() => SetSort(SortKey.Date)">
-        Sortera: Datum @(currentKey == SortKey.Date ? (descending ? "▲" : "▼") : "")
+        Sortera: Datum @(_currentKey == SortKey.Date ? (_descending ? "▲" : "▼") : "")
     </button>
     <button class="btn btn-sm" @onclick="() => SetSort(SortKey.Amount)">
-        Sortera: Belopp @(currentKey == SortKey.Amount ? (descending ? "▲" : "▼") : "")
+        Sortera: Belopp @(_currentKey == SortKey.Amount ? (_descending ? "▲" : "▼") : "")
     </button>
 </div>
 
-@if (!(_selectedAccount?.Transactions?.Any() ?? false))
+@{
+    var anyTransactions = _selectedAccount != null
+        ? _selectedAccount.Transactions.Any()
+        : _accounts.SelectMany(a => a.Transactions).Any();
+}
+
+@if (!anyTransactions)
 {
     <p>Inga Transaktioner ännu.</p>
 }
@@ -44,54 +52,142 @@ else
     <table class="table table-sm">
         <thead>
             <tr>
-                <th>Datum</th>
-                <th>Belopp</th>
-                <th>Transaktionstyp</th>
-                <th>Saldo efter</th>
-                <th>Från - Till</th>
-                <th></th> <!-- Delete column -->
+                <th style="cursor:pointer" @onclick="() => SetSort(SortKey.Date)">Datum @(_currentKey == SortKey.Date ? (_descending ? "▲" : "▼") : "")</th>
+                <th>Typ</th>
+                <th style="cursor:pointer" @onclick="() => SetSort(SortKey.Amount)">Belopp @(_currentKey == SortKey.Amount ? (_descending ? "▲" : "▼") : "")</th>
+                <th>Motpart</th>
+                <th>Beskrivning</th>
+                <th></th>
             </tr>
         </thead>
         <tbody>
             @foreach (var transaction in SortedTransaction())
             {
                 <tr>
-                    <td>@transaction.TimeStamp.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</td>
-                    <td>@transaction.Amount</td>
-                    <td>@transaction.TransactionType</td>
-                    <td>@transaction.BalanceAfter</td>
+                    <td>@transaction.TimeStamp.ToLocalTime().ToString("yyyy-MM-dd")</td>
+                    <td>
+                        @{
+                            // Bestäm typtext beroende på valt konto
+                            string typeText;
+                            if (_selectedAccount != null)
+                            {
+                                if (transaction.FromAccountId == _selectedAccount.Id && transaction.ToAccountId == _selectedAccount.Id)
+                                {
+                                    typeText = "Intern"; // sällsynt: både from och to är samma konto
+                                }
+                                else if (transaction.FromAccountId == _selectedAccount.Id)
+                                {
+                                    typeText = "Överfört"; // pengar ut
+                                }
+                                else if (transaction.ToAccountId == _selectedAccount.Id)
+                                {
+                                    typeText = "Mottagit"; // pengar in
+                                }
+                                else
+                                {
+                                    // När man visar ett konto men transaktionen inte involverar det (kan ske vid aggregering)
+                                    typeText = transaction.TransactionType switch
+                                    {
+                                        TransactionType.Deposit => "Insättning",
+                                        TransactionType.Withdrawal => "Uttag",
+                                        TransactionType.Transfer => "Överföring",
+                                        _ => transaction.TransactionType.ToString()
+                                    };
+                                }
+                            }
+                            else
+                            {
+                                // Ingen filtrering: visa generell typ
+                                typeText = transaction.TransactionType switch
+                                {
+                                    TransactionType.Deposit => "Insättning",
+                                    TransactionType.Withdrawal => "Uttag",
+                                    TransactionType.Transfer => "Överföring",
+                                    _ => transaction.TransactionType.ToString()
+                                };
+                            }
+                            @typeText
+                        }
+                    </td>
+                    <td>
+                        @{
+                            // Visa +/-, format sv-SE
+                            bool outgoingWhenFiltered = _selectedAccount != null && transaction.FromAccountId == _selectedAccount.Id;
+                            bool incomingWhenFiltered = _selectedAccount != null && transaction.ToAccountId == _selectedAccount.Id;
+
+                            string sign = "";
+                            if (_selectedAccount != null)
+                            {
+                                if (outgoingWhenFiltered) sign = "-";
+                                else if (incomingWhenFiltered) sign = "+";
+                            }
+                            else
+                            {
+                                // När visar alla konton ge neutral (visa + för deposits)
+                                if (transaction.TransactionType == TransactionType.Deposit) sign = "+";
+                                else if (transaction.TransactionType == TransactionType.Withdrawal) sign = "-";
+                            }
+
+                            var culture = new CultureInfo("sv-SE");
+                            @((sign) + transaction.Amount.ToString("N2", culture) + " kr")
+                        }
+                    </td>
                     <td>
                         @{
                             var fromAccount = _accounts.FirstOrDefault(a => a.Id == transaction.FromAccountId);
                             var toAccount = _accounts.FirstOrDefault(a => a.Id == transaction.ToAccountId);
+
+                            string counterparty;
+                            if (_selectedAccount != null)
+                            {
+                                // Visa motparten för den valda konton
+                                if (transaction.FromAccountId == _selectedAccount.Id)
+                                {
+                                    counterparty = toAccount?.Name ?? "Extern";
+                                }
+                                else if (transaction.ToAccountId == _selectedAccount.Id)
+                                {
+                                    counterparty = fromAccount?.Name ?? "Extern";
+                                }
+                                else
+                                {
+                                    // Om transaktionen inte involverar valt konto, visa båda
+                                    counterparty = (fromAccount?.Name ?? "Extern") + " → " + (toAccount?.Name ?? "Extern");
+                                }
+                            }
+                            else
+                            {
+                                // När visar alla konton, visa "from → to" (eller Extern)
+                                counterparty = (fromAccount?.Name ?? "Extern") + " → " + (toAccount?.Name ?? "Extern");
+                            }
+
+                            @counterparty
                         }
-                        @((fromAccount?.Name ?? "Extern") + " → " + (toAccount?.Name ?? "Extern"))
                     </td>
+                    <td>@transaction.Note</td>
                     <td>
-                        <button class="btn btn-danger btn-sm" @onclick="() => DeleteTransaction(transaction)">
-                            Ta bort</button> <!-- Lagt till delete-knapp för att ta bort transaktion -->
+                        <button class="btn btn-danger btn-sm" @onclick="() => DeleteTransaction(transaction)">Ta bort</button>
                     </td>
                 </tr>
             }
-        </tbody> 
+        </tbody>
     </table>
 }
 
 @code {
-    //
     private List<BankAccount> _accounts = new();
     private BankAccount? _selectedAccount;
-    private Guid _selectedAccountIdBacking;
-    private SortKey currentKey = SortKey.Date;
-    private bool descending = true;
+    private Guid _selectedAccountIdBacking = Guid.Empty;
+    private SortKey _currentKey = SortKey.Date;
+    private bool _descending = true;
 
-    private Guid _selectedAccountId
+    private Guid SelectedAccountId
     {
         get => _selectedAccountIdBacking;
         set
         {
             _selectedAccountIdBacking = value;
-            _selectedAccount = _accounts.FirstOrDefault(a => a.Id == value); // Uppdaterar valt konto vid byte
+            _selectedAccount = value == Guid.Empty ? null : _accounts.FirstOrDefault(a => a.Id == value);
         }
     }
 
@@ -103,57 +199,69 @@ else
 
     private void SetSort(SortKey sortKey)
     {
-        if (currentKey == sortKey)
-            descending = !descending;
+        if (_currentKey == sortKey)
+            _descending = !_descending;
         else
         {
-            currentKey = sortKey;
-            descending = true;
+            _currentKey = sortKey;
+            _descending = true;
         }
     }
 
     protected override async Task OnInitializedAsync()
     {
         _accounts = (await Accountservice.GetAccountsAsync()).ToList();
-        if (_accounts.Count > 0)
-        {
-            _selectedAccountId = _accounts[0].Id;
-            _selectedAccount = _accounts[0];
-        }
+        SelectedAccountId = Guid.Empty;
         StateHasChanged();
     }
 
     public async Task RefreshAccountsAsync()
     {
         _accounts = (await Accountservice.GetAccountsAsync()).ToList();
-        _selectedAccount = _accounts.FirstOrDefault(a => a.Id == _selectedAccountId);
+        _selectedAccount = _accounts.FirstOrDefault(a => a.Id == _selectedAccountIdBacking);
         StateHasChanged();
     }
 
     private IEnumerable<Transaction> SortedTransaction()
     {
+        IEnumerable<Transaction> source;
         if (_selectedAccount == null)
-            return Enumerable.Empty<Transaction>();
-
-        var sortedList = _selectedAccount.Transactions.AsEnumerable();
-        sortedList = currentKey switch
         {
-            SortKey.Amount => (descending
+            // Aggrgera transaktioner från alla konton
+            // När vi aggregerar kan samma Transaction-instans ligga i flera konton (transfer).
+            // Gruppéra efter Id för att visa varje transaktion endast en gång.
+            source = _accounts.SelectMany(a => a.Transactions)
+                              .GroupBy(t => t.Id)
+                              .Select(g => g.First())
+                              .AsEnumerable();
+        }
+        else
+        {
+            source = _selectedAccount.Transactions.AsEnumerable();
+        }
+
+        var sortedList = source;
+        sortedList = _currentKey switch
+        {
+            SortKey.Amount => (_descending
                 ? sortedList.OrderByDescending(t => t.Amount)
                 : sortedList.OrderBy(t => t.Amount)),
-            _ => (descending
+            _ => (_descending
                 ? sortedList.OrderByDescending(t => t.TimeStamp)
                 : sortedList.OrderBy(t => t.TimeStamp))
         };
+
         return sortedList;
     }
+
     private async Task DeleteTransaction(Transaction transaction)
     {
-        if (_selectedAccount != null)
+        var owner = _accounts.FirstOrDefault(a => a.Transactions.Any(t => t.Id == transaction.Id));
+        if (owner != null)
         {
-            _selectedAccount.Transactions.Remove(transaction); 
-            await Accountservice.SaveAccountsAsync(); 
-            await RefreshAccountsAsync(); 
+            owner.RemoveTransaction(transaction.Id);
+            await Accountservice.SaveAccountsAsync();
+            await RefreshAccountsAsync();
         }
     }
 }
