@@ -2,6 +2,7 @@
 @inject IAccountService Accountservice
 @using System.Linq
 
+<!-- History for transaction -->
 <h3>TransactionHistory</h3>
 
 @if (_accounts.Count == 0)
@@ -24,7 +25,7 @@ else
     </div>
 }
 
-<!-- sortering -->
+<!-- Sorting -->
 <div class="mb-2">
     <button class="btn btn-sm" @onclick="() => SetSort(SortKey.Date)">
         Sortera: Datum @(currentKey == SortKey.Date ? (descending ? "▲" : "▼") : "")
@@ -77,6 +78,7 @@ else
 }
 
 @code {
+    //
     private List<BankAccount> _accounts = new();
     private BankAccount? _selectedAccount;
     private Guid _selectedAccountIdBacking;
