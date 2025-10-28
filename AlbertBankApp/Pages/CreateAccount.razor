@@ -97,7 +97,7 @@ else
 
     private class CreateAccountModel
     {
-        [Required(ErrorMessage = "Namn på kontot är obligatoriskt")]
+        [Required(ErrorMessage = "Namn på kontot är obligatoriskt")] // får inte köra required
         [StringLength(50, ErrorMessage = "Namn på kontot får inte överstiga 50 tecken")]
         public string Name { get; set; } = string.Empty;
 

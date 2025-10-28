@@ -3,28 +3,32 @@
 @inject AlbertBankApp.Interfaces.IAccountService AccountService
 @inject NavigationManager Navigation
 
-<h3>Välkommen till AlbertBankApp!</h3>
-<br/>
-<div class="form-group" id="codeInputContainer" style="max-width: 200px;">
-    <label for="inputCode" class="form-label">Ange kod för att logga in:</label>
-    <InputText id="inputCode"
-               class="form-control"
-               @bind-Value="userCode"
-               type="password"
-               inputmode="numeric"
-               pattern="[0-9]*"
-               @oninput="OnlyDigits" />
+<div style="min-height: 100vh; display: flex; flex-direction: column; justify-content: flex-start; align-items: center; padding-top: 8vh;">
+    <div style="width: 100%; max-width: 200px;">
+        <h3 style="text-align: center;">Välkommen till AlbertBankApp!</h3>
+        <br />
+        <div class="form-group" id="codeInputContainer" style="max-width: 200px; margin: 0 auto;">
+            <label for="inputCode" class="form-label">Ange kod för att logga in:</label>
+            <InputText id="inputCode"
+                       class="form-control"
+                       @bind-Value="userCode"
+                       type="password"
+                       inputmode="numeric"
+                       pattern="[0-9]*"
+                       @oninput="OnlyDigits" />
+        </div>
+
+        @if (!string.IsNullOrEmpty(userCode) && IsDigitsOnly(userCode))
+        {
+            <button class="btn btn-primary mt-2 w-100" @onclick="HandleLogin">Logga in</button>
+        }
+
+        @if (!string.IsNullOrEmpty(message))
+        {
+            <div class="text-danger mt-2" style="text-align:center;">@message</div>
+        }
+    </div>
 </div>
-
-@if (!string.IsNullOrEmpty(userCode) && IsDigitsOnly(userCode))
-{
-    <button class="btn btn-primary mt-2" @onclick="HandleLogin">Logga in</button>
-}
-
-@if (!string.IsNullOrEmpty(message))
-{
-    <div class="text-danger mt-2">@message</div>
-}
 
 @code {
     private string userCode = string.Empty;
