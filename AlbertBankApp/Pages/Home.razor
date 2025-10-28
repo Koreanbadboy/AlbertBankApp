@@ -1,49 +1,11 @@
-﻿@inject IAccountService IAccountservice
-
-@page "/"
+﻿@page "/home"
+@inject AlbertBankApp.Interfaces.IAccountService AccountService
 
 <PageTitle>Home</PageTitle>
 
 <h1 style="font-weight: bold; font-family: 'Arial', sans-serif;">Välkommen till AlbertBankApp</h1>
 
-
 <br/>
 <p>Här kan du skapa bankkonton, göra överföringar och se din transaktionshistorik.</p>
 <p>Använd navigationsmenyn för att komma igång.</p>
 
-<div class="form-group" id="codeInputContainer">
-    <label for="inputCode" class="form-label">Ange kod för att logga in:</label>
-    <InputText id="inputCode"
-               class="form-control"
-               @bind-Value="userCode"
-               type="password"
-               inputmode="numeric"
-               pattern="[0-9]*"
-               @oninput="OnlyDigits" />
-</div>
-
-@if (!string.IsNullOrEmpty(userCode) && IsDigitsOnly(userCode))
-{
-    <button class="btn btn-primary mt-2" @onclick="Login">Logga in</button>
-}
-
-@code {
-    // Här deklarerar du variabeln som kopplas till InputText
-    private string userCode = string.Empty;
-
-    private void OnlyDigits(ChangeEventArgs e)
-    {
-        var value = e.Value?.ToString() ?? string.Empty;
-        userCode = new string(value.Where(char.IsDigit).ToArray());
-    }
-
-    private bool IsDigitsOnly(string str)
-    {
-        return str.All(char.IsDigit);
-    }
-
-    private void Login()
-    {
-        // Logik för inloggning kan läggas här
-    }
-}

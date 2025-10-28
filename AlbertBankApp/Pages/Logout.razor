@@ -1,0 +1,11 @@
+@inject NavigationManager Navigation
+
+<button class="btn btn-link" @onclick="HandleLogout">Logga ut</button>
+
+@code {
+    private Task HandleLogout()
+    {
+        Navigation.NavigateTo("/", replace: true);
+        return Task.CompletedTask;
+    }
+}

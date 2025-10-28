@@ -130,4 +130,13 @@ public class AccountService : IAccountService
     {
         await _storage.SetItemAsync(StorageKey, _accounts);
     }
+    
+    /// <summary>
+    /// 
+    /// </summary>
+    private readonly string _correctPin = "1234";
+    public Task<bool> ValidatePinAsync(string pin)
+    {
+        return Task.FromResult(pin == _correctPin);
+    }
 }
