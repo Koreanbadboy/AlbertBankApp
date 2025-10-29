@@ -27,6 +27,7 @@ else
                 <th style="padding: 8px; border: 1px solid #ddd;">Typ</th>
                 <th style="padding: 8px; border: 1px solid #ddd;">Belopp</th>
                 <th style="padding: 8px; border: 1px solid #ddd;">Valuta</th>
+                <th style="padding: 12px; border: 1px solid #ddd;">Ränta</th>
                 <th style="padding: 8px; border: 1px solid #ddd;">Insättning/Uttag</th>
             </tr>
         </thead>
@@ -38,6 +39,9 @@ else
                 <td style="padding: 8px; border: 1px solid #ddd;">@account.AccountType</td>
                 <td style="padding: 8px; border: 1px solid #ddd;">@account.Balance.ToString("N2")</td>
                 <td style="padding: 8px; border: 1px solid #ddd;">@account.Currency</td>
+                <td style="padding: 8px; border: 1px solid #ddd;">
+                    @(account.InterestRate.HasValue ? (account.InterestRate.Value * 100).ToString("N2") + " %" : "-")
+                </td>
                 <td style="padding: 8px; border: 1px solid #ddd;">
                     <button @onclick="() => SelectAccount(account)" style="padding:4px 10px;">Välj</button>
                 </td>

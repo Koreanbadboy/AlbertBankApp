@@ -15,6 +15,7 @@ public class BankAccount : IBankAccount
     public string Name { get; set; } = string.Empty;
     public AccountType AccountType { get; set; }
     public CurrencyType Currency { get; set; }
+    public decimal? InterestRate { get; set; } 
 
     [JsonInclude]
     public decimal Balance { get; private set; }
@@ -191,16 +192,29 @@ public class BankAccount : IBankAccount
         Balance = 0m;
         LastUpdated = DateTime.UtcNow;
     }
-    public BankAccount(Guid id, string name, AccountType accountType, CurrencyType currency, decimal initialBalance = 0m)
+    public BankAccount(Guid id, string name, AccountType accountType, CurrencyType currency,
+        decimal initialBalance = 0m, decimal? interestRate = null)
     {
         Id = id == default ? Guid.NewGuid() : id;
         Name = name ?? throw new ArgumentNullException(nameof(name));
         AccountType = accountType;
         Currency = currency;
+        InterestRate = interestRate as decimal?;
         Balance = 0m;
         LastUpdated = DateTime.UtcNow;
 
         if (initialBalance > 0)
             Deposit(initialBalance, "Initial balance");
+    }
+    /// <summary>
+    /// InterestRate method for Sparkonto account
+    /// </summary>
+public void ApplyInterest()
+    {
+        if (AccountType == AccountType.Sparkonto && InterestRate.HasValue && InterestRate > 0)
+        {
+            var interest = Balance * InterestRate.Value;
+            Deposit(interest, "Ränteinsättning");
+        }
     }
 }

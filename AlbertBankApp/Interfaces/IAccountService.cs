@@ -8,7 +8,7 @@ namespace AlbertBankApp.Interfaces;
 public interface IAccountService
 {
     Task<IReadOnlyList<BankAccount>> GetAccountsAsync();
-    Task<BankAccount> CreateAccountAsync(string name, AccountType accountType, CurrencyType currency, decimal initialBalance = 0m);
+    Task<BankAccount> CreateAccountAsync(string name, AccountType accountType, CurrencyType currency, decimal initialBalance = 0m, decimal? interestRate = null);
     Task DepositAsync(Guid accountId, decimal amount, string? note = null);
     Task WithdrawAsync(Guid accountId, decimal amount, string? note = null);
     Task<IReadOnlyList<Domain.Transaction>> GetTransactionsAsync(Guid accountId);

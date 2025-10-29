@@ -38,10 +38,10 @@ public class AccountService : IAccountService
     }
 
     public async Task<BankAccount> CreateAccountAsync(string name, AccountType accountType, CurrencyType currency,
-        decimal initialBalance = 0)
+        decimal initialBalance = 0, decimal? interestRate = null)
     {
         await EnsureLoadedAsync();
-        var newAccount = new BankAccount(Guid.NewGuid(), name, accountType, currency, initialBalance);
+        var newAccount = new BankAccount(Guid.NewGuid(), name, accountType, currency, initialBalance, accountType == AccountType.Sparkonto?(interestRate ?? 0):null);
 
         _accounts.Add(newAccount);
         await SaveAsync();
