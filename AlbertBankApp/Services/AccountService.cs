@@ -209,4 +209,48 @@ public class AccountService : IAccountService
     {
         return Task.FromResult(pin == _correctPin);
     }
+
+    /// <summary>
+    ///  Changes the interest rate of a Sparkonto account
+    /// </summary>
+    /// <param name="accountId"></param>
+    /// <param name="delta"></param>
+    /// <exception cref="InvalidOperationException"></exception>
+    public async Task ChangeInterestAsync(Guid accountId, decimal delta)
+    {
+        await EnsureLoadedAsync();
+
+        var account = _accounts.FirstOrDefault(a => a.Id == accountId)
+                      ?? throw new InvalidOperationException("Account not found.");
+
+        if (account.AccountType != AccountType.Sparkonto)
+            throw new InvalidOperationException("Interest can only be changed for Sparkonto accounts.");
+
+        account.InterestRate ??= 0m;
+        account.InterestRate = Math.Max(0m, account.InterestRate.Value + delta);
+
+        // första-gången-skydd: om vi börjar med ränta på ett konto som redan har pengar
+        if (account.InitialBalance == 0m && account.Balance > 0m)
+            account.InitialBalance = account.Balance;
+
+        // uppdatera saldo via transaktioner (Räntejustering)
+        account.UpdateBalanceWithInterest();
+
+        await SaveAsync();
+    }
+
+    /// <summary>
+    ///  Applies interest to a Sparkonto account
+    /// </summary>
+    /// <param name="accountId"></param>
+    public async Task ApplyInterestAsync(Guid accountId)
+    {
+        await EnsureLoadedAsync();
+        var account = _accounts.FirstOrDefault(a => a.Id == accountId);
+        if (account != null && account.InterestRate.HasValue)
+        {
+            account.Balance += account.Balance * account.InterestRate.Value;
+            await SaveAsync();
+        }
+    }
 }

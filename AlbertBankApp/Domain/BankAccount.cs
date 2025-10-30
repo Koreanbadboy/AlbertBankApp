@@ -16,9 +16,17 @@ public class BankAccount : IBankAccount
     public AccountType AccountType { get; set; }
     public CurrencyType Currency { get; set; }
     public decimal? InterestRate { get; set; } 
+    public decimal InitialBalance { get; set; }
+    
+    public void UpdateBalanceWithInterest()
+    {
+        if (!InterestRate.HasValue) return;
 
+        Balance = InitialBalance * (1 + InterestRate.Value);
+    }
+    
     [JsonInclude]
-    public decimal Balance { get; private set; }
+    public decimal Balance { get; set; }
 
     [JsonInclude]
     public DateTime LastUpdated { get; private set; }
@@ -199,7 +207,8 @@ public class BankAccount : IBankAccount
         Name = name ?? throw new ArgumentNullException(nameof(name));
         AccountType = accountType;
         Currency = currency;
-        InterestRate = interestRate as decimal?;
+        InitialBalance = initialBalance;
+        InterestRate = interestRate;
         Balance = 0m;
         LastUpdated = DateTime.UtcNow;
 
@@ -211,10 +220,24 @@ public class BankAccount : IBankAccount
     /// </summary>
 public void ApplyInterest()
     {
-        if (AccountType == AccountType.Sparkonto && InterestRate.HasValue && InterestRate > 0)
+        if (AccountType == AccountType.Sparkonto && InterestRate.HasValue && InterestRate != 0)
         {
             var interest = Balance * InterestRate.Value;
-            Deposit(interest, "Ränteinsättning");
+            var newBalance = Balance + interest;
+    
+            if (newBalance < InitialBalance)
+            {
+                Balance = InitialBalance;
+                // Optionally, add a transaction for the adjustment if you want it in history
+            }
+            else if (interest > 0)
+            {
+                Deposit(interest, "Ränteinsättning");
+            }
+            else if (-interest <= Balance)
+            {
+                Withdraw(-interest, "Negativ ränta");
+            }
         }
     }
 }

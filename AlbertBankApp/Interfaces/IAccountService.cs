@@ -18,4 +18,6 @@ public interface IAccountService
     List<IBankAccount> GetAccounts();
     Task SaveAccountsAsync();
     Task<bool> ValidatePinAsync(string pin); // pinkod
+    Task ChangeInterestAsync(Guid accountId, decimal @decimal);
+    Task ApplyInterestAsync(Guid accountId);
 }

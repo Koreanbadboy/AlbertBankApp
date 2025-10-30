@@ -81,6 +81,7 @@
                 <th>Valuta</th>
                 <th>Saldo</th>
                 <th>Ränta</th>
+                <th>Ränta</th>
                 <th></th>
             </tr>
         </thead>
@@ -98,6 +99,25 @@
                     @(account.InterestRate.HasValue ? (account.InterestRate.Value * 100).ToString("N2") + " %" : "-")
                 </td>
                 
+                <td>
+                    @if (account.AccountType == AccountType.Sparkonto)
+                    {
+                        <div class="input-group input-group-sm" style="max-width: 120px;">
+                            <button class="btn btn-outline-secondary btn-sm"
+                                    @onclick="() => DecreaseAccountInterest(account.Id)">-</button>
+                            <span class="form-control text-center" style="padding: 0.25rem 0.5rem;">
+                                @(account.InterestRate.HasValue ? (account.InterestRate.Value * 100).ToString("N2") + " %" : "-")
+                            </span>
+                            <button class="btn btn-outline-secondary btn-sm"
+                                    @onclick="() => IncreaseAccountInterest(account.Id)">+</button>
+                        </div>
+                    }
+                    else
+                    {
+                        @(account.InterestRate.HasValue ? (account.InterestRate.Value * 100).ToString("N2") + " %" : "-")
+                    }
+                </td>
+                
                 <!-- Delete button -->
                 <td>
                     <button class="btn btn-danger btn-sm" @onclick="() => DeleteAccountAsync(account.Id)">Ta bort</button>
@@ -111,6 +131,7 @@ else
 {
     <p>Inga konton skapade än.</p>
 }
+
 
 @code {
     
@@ -204,5 +225,23 @@ else
         await AccountService.DeleteAccountAsync(accountId);
         await LoadAccountsAsync();
         StateHasChanged();
+    }
+    
+    /// <summary>
+    ///  Increases the interest rate of an account by 1%
+    /// </summary>
+    /// <param name="accountId"></param>
+    private async Task IncreaseAccountInterest(Guid accountId)
+    {
+        await AccountService.ChangeInterestAsync(accountId, 0.01m); // Increase by 1%
+        await AccountService.ApplyInterestAsync(accountId);         // Apply interest to balance
+        await LoadAccountsAsync();
+    }
+
+    private async Task DecreaseAccountInterest(Guid accountId)
+    {
+        await AccountService.ChangeInterestAsync(accountId, -0.01m); // Decrease by 1%
+        await AccountService.ApplyInterestAsync(accountId);          // Apply interest to balance
+        await LoadAccountsAsync();
     }
 }
