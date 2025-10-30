@@ -3,6 +3,7 @@
 @inject AlbertBankApp.Interfaces.IAccountService AccountService
 @inject NavigationManager Navigation
 
+<!-- Welcome text and input bar for password -->
 <div style="min-height: 100vh; display: flex; flex-direction: column; justify-content: flex-start; align-items: center; padding-top: 8vh;">
     <div style="width: 100%; max-width: 200px;">
         <h3 style="text-align: center;">Välkommen till AlbertBankApp!</h3>
@@ -17,7 +18,8 @@
                        pattern="[0-9]*"
                        @oninput="OnlyDigits" />
         </div>
-
+        
+        <!-- login button will show if digits are typed -->
         @if (!string.IsNullOrEmpty(userCode) && IsDigitsOnly(userCode))
         {
             <button class="btn btn-primary mt-2 w-100" @onclick="HandleLogin">Logga in</button>
@@ -31,9 +33,16 @@
 </div>
 
 @code {
+    /// <summary>
+    /// User input code for login
+    /// </summary>
     private string userCode = string.Empty;
     private string message = string.Empty;
-
+    
+    /// <summary>
+    ///  Allows only digit characters in the input
+    /// </summary>
+    /// <param name="e"></param>
     private void OnlyDigits(ChangeEventArgs e)
     {
         var value = e.Value?.ToString() ?? string.Empty;
@@ -45,7 +54,12 @@
 
         userCode = sb.ToString();
     }
-
+    
+    /// <summary>
+    ///  Checks if a string contains only digit characters
+    /// </summary>
+    /// <param name="str"></param>
+    /// <returns></returns>
     private bool IsDigitsOnly(string str)
     {
         if (string.IsNullOrEmpty(str)) return false;
@@ -56,7 +70,10 @@
 
         return true;
     }
-
+    
+    /// <summary>
+    /// Handles the login process
+    /// </summary>
     private async Task HandleLogin()
     {
         message = string.Empty;

@@ -1,6 +1,7 @@
 @page "/NewTransaction"
 @inject IAccountService AccountService
-<!-- linq kommands för filtrera datum-->
+
+<!-- Linq command for filter of date-->
 <h3>Överföring</h3>
 
 @if (_accounts == null || _accounts.Count < 2)
@@ -10,10 +11,8 @@
 else
 {
     <EditForm Model="_transferModel" OnValidSubmit="HandleTransfer">
-        <DataAnnotationsValidator />
-        <ValidationSummary />
 
-        <!-- från konto dropdown -->
+        <!-- From Account dropdown -->
         <div class="mb-3">
             <label for="fromAccount" class="form-label">Från konto</label>
             <InputSelect id="fromAccount" class="form-select" @bind-Value="_transferModel.FromAccountId" @bind-Value:after="FromAccountChanged">
@@ -25,7 +24,7 @@ else
             </InputSelect>
         </div>
         
-        <!-- till konto dropdown -->
+        <!-- To Account dropdown -->
         <div class="mb-3">
             <label for="toAccount" class="form-label">Till konto</label>
             <InputSelect id="toAccount" class="form-select" @bind-Value="_transferModel.ToAccountId">
@@ -50,7 +49,7 @@ else
         <button type="submit" class="btn btn-primary">Överför</button>
         <br/>
         
-        <!-- Transaktionshistorik -->
+        <!-- Transaction history -->
         
         @if (_history.Any())
         {
@@ -62,7 +61,7 @@ else
                         <th>Från konto</th>
                         <th>Till konto</th>
                         <th>Belopp</th>
-                        <th></th> <!-- tom delete kolumn -->
+                        <th></th> <!-- Column for delete button -->
                     </tr>
                 </thead>
                 <tbody>
@@ -73,33 +72,43 @@ else
                             <td>@transaction.FromAccountName</td>
                             <td>@transaction.ToAccountName</td>
                             <td>@transaction.Amount.ToString("C")</td>
+                            
+                            <!-- Delete button -->
                             <td>
-                                <button class="btn btn-danger btn-sm" @onclick="() => DeleteTranscation(transaction)">Ta bort</button> <!-- Delete button -->
+                                <button class="btn btn-danger btn-sm" @onclick="() => DeleteTranscation(transaction)">Ta bort</button>
                             </td>
                         </tr>
                     }
                 </tbody>
             </table>
         }
-        
     </EditForm>
 }
 
 @code {
+    
+    /// <summary>
+    /// List of bank accounts for the user
+    /// </summary>
     private List<BankAccount> _accounts = new();
     private List<BankAccount> _toAccounts = new();
     private TransferModel _transferModel = new();
     private string? _errorMessage;
     private List<Transaction> _history = new();
 
+    /// <summary>
+    /// Loads accounts and transaction history on initialization
+    /// </summary>
     protected override async Task OnInitializedAsync()
     {
         _accounts = (await AccountService.GetAccountsAsync()).ToList();
         _toAccounts = _accounts;
-        // Hämtar alla transaktioner för alla konton
         _history = _accounts.SelectMany(a => a.Transactions).OrderByDescending(t => t.TimeStamp).ToList();
     }
-
+    
+    /// <summary>
+    /// Updates the ToAccount list when FromAccount changes
+    /// </summary>
     private void FromAccountChanged()   
     {
         _toAccounts = _accounts.Where(a => a.Id != _transferModel.FromAccountId).ToList();
@@ -109,47 +118,56 @@ else
         }
         StateHasChanged();
     }
-
+    
+    /// <summary>
+    /// Handles the transfer submission
+    /// </summary>
     private async Task HandleTransfer()
     {
         _errorMessage = null;
+
         try
         {
             await AccountService.TransferAsync(
                 _transferModel.FromAccountId,
                 _transferModel.ToAccountId,
                 _transferModel.Amount);
-            // Ladda om konton och historik efter överföring
+
+            // Ladda om konton & historik
             _accounts = (await AccountService.GetAccountsAsync()).ToList();
             _toAccounts = _accounts.Where(a => a.Id != _transferModel.FromAccountId).ToList();
-            _history = _accounts.SelectMany(a => a.Transactions).OrderByDescending(t => t.TimeStamp).ToList();
+            _history = _accounts.SelectMany(a => a.Transactions)
+                .OrderByDescending(t => t.TimeStamp)
+                .ToList();
+
+            // (Valfritt) nolla formuläret
+            _transferModel.Amount = 0;
+            _transferModel.ToAccountId = Guid.Empty;
         }
         catch (Exception ex)
         {
-            _errorMessage = ex.Message;
+            _errorMessage = ex.Message; // fel visas om något går fel i TransferAsync
         }
     }
 
-    // Metod för delete-knapp
+    /// <summary>
+    /// Deletes a transaction
+    /// </summary>
+    /// <param name="transaction"></param>
     private async Task DeleteTranscation(Transaction transaction)
     {
-        // Ta bort transaktionen via service
         await AccountService.DeleteTransactionAsync(transaction.Id);
-        // Ladda om konton och historik
         _accounts = (await AccountService.GetAccountsAsync()).ToList();
         _history = _accounts.SelectMany(a => a.Transactions).OrderByDescending(t => t.TimeStamp).ToList();
     }
-
+    
+    /// <summary>
+    /// 
+    /// </summary>
     public class TransferModel
     {
-        [Required(ErrorMessage = "Välj ett från konto")]
         public Guid FromAccountId { get; set; }
-
-        [Required(ErrorMessage = "Välj ett till konto")]
         public Guid ToAccountId { get; set; }
-
-        [Required]
-        [Range(0.01, double.MaxValue, ErrorMessage = "Belopp måste vara större än 0")]
         public decimal Amount { get; set; }
     }
 }

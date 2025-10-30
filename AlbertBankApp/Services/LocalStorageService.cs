@@ -5,6 +5,9 @@ using System.Threading.Tasks;
 
 namespace AlbertBankApp.Services;
 
+/// <summary>
+///  Implements methods for storing and retrieving data from the browser's local storage
+/// </summary>
 public class LocalStorageService : ILocalStorageService
 {
     private readonly IJSRuntime _jsRuntime;
@@ -23,13 +26,23 @@ public class LocalStorageService : ILocalStorageService
         
         return JsonSerializer.Deserialize<T>(json);
     }
-
+    
+    /// <summary>
+    ///  Saves an item to local storage
+    /// </summary>
+    /// <param name="key"></param>
+    /// <param name="value"></param>
+    /// <typeparam name="T"></typeparam>
     public async Task SetItemAsync<T>(string key, T value)
     {
         var json = JsonSerializer.Serialize(value);
         await _jsRuntime.InvokeVoidAsync("localStorage.setItem", key, json);
     }
-
+    
+    /// <summary>
+    ///  Removes an item from local storage
+    /// </summary>
+    /// <param name="key"></param>
     public async Task RemoveItemAsync(string key)
     {
         await _jsRuntime.InvokeVoidAsync("localStorage.removeItem", key);

@@ -11,7 +11,6 @@ builder.RootComponents.Add<HeadOutlet>("head::after");
 
 builder.Services.AddScoped<IAccountService, AccountService>();
 builder.Services.AddScoped<ILocalStorageService, LocalStorageService>();
-// add when configuring DI (after builder is created)
 builder.Services.AddScoped<AlbertBankApp.Interfaces.IAccountService, AlbertBankApp.Services.AccountService>();
 
 

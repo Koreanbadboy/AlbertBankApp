@@ -3,7 +3,7 @@
 
 <h3>Historik</h3>
 
-<!-- konto -->
+<!-- Select account(s) -->
 <div class="mb-3" style="max-width: 420px;">
     <label class="form-label">Välj konto..</label>
     <InputSelect @bind-Value="SelectedAccountId" class="form-select">
@@ -14,7 +14,7 @@
         }
     </InputSelect>
 </div>
-<!-- datumintervall -->
+<!-- Date intervall -->
 <div class="mb-3" style="max-width: 420px;">
     <label class="form-label">Datumintervall:</label>
     <div class="d-flex gap-2">
@@ -25,7 +25,7 @@
 </div>
 
 
-<!-- Historik -->
+<!-- History -->
 @if (_transactions is null)
 {
     <div class="alert alert-light border" style="max-width: 720px;">
@@ -40,7 +40,7 @@ else if (!_transactions.Any())
 }
 else
 {
-    <!-- Lista för valt konto eller alla konton -->
+    <!-- List of selected account or all accounts -->
     <div class="table-responsive" style="max-width: 900px;">
         <table class="table table-striped align-middle">
             <thead class="table-light">
@@ -77,13 +77,16 @@ else
 }
 
 @code {
+    
+    /// <summary>
+    ///  List of bank accounts for the user
+    /// </summary>
     private List<BankAccount> _accounts = new();
     private List<Transaction>? _transactions = null; // Null = laddar, tom lista = inga transaktioner
     private string? _errorMessage;
     private string _selectedAccountIdString = string.Empty;
     private bool _sortDescending = true; // Default: nyaste först - tillagd för sorteringsfunktionalitet
-
-    // Property med logik för att ladda transaktioner vid byte av konto
+    
     private string SelectedAccountId
     {
         get => _selectedAccountIdString;
@@ -92,32 +95,34 @@ else
             if (_selectedAccountIdString != value)
             {
                 _selectedAccountIdString = value;
-                _ = LoadTransactionsAsync(); // Ladda transaktioner vid byte av konto
+                _ = LoadTransactionsAsync();
             }
         }
     }
     
+    /// <summary>
+    ///  Loads accounts and transactions on initialization
+    /// </summary>
     protected override async Task OnInitializedAsync()
     {
         try
         {
             _accounts = (await AccountService.GetAccountsAsync()).ToList();
-            // Valt konto minns bara under sessionen
         }
         catch (Exception ex)
         {
             _errorMessage = $"FEL vid hämtning av konton: {ex.Message}";
         }
-        // Ladda transaktioner för alla konton som standard
         _ = LoadTransactionsAsync();
     }
     
-    // Hämtar transaktioner för valt konto eller alla konton
+    /// <summary>
+    ///  Loads transactions for the selected account or all accounts
+    /// </summary>
     private async Task LoadTransactionsAsync()
     {    
         if (!Guid.TryParse(SelectedAccountId, out var accountId))
         {
-            // Om inget konto är valt, ladda transaktioner för alla konton
             if (!_accounts.Any())
             {
                 _transactions = new List<Transaction>();
@@ -125,13 +130,12 @@ else
                 return;
             }
 
-            _transactions = null; // Markera som "laddar"
+            _transactions = null;
             _errorMessage = null;
             StateHasChanged();
 
             try
             {
-                // Hämta transaktioner parallellt för alla konton
                 var tasks = _accounts.Select(a => AccountService.GetTransactionsAsync(a.Id));
                 var results = await Task.WhenAll(tasks);
                 _transactions = results.SelectMany(r => r).ToList(); // Slå ihop alla transaktioner
@@ -149,7 +153,6 @@ else
             return;
         }
         
-        // Ladda transaktioner för specifikt konto
         _transactions = null;
         _errorMessage = null;
         StateHasChanged();
@@ -169,7 +172,11 @@ else
         }
     }
 
-    // Ny metod - visar motparten i transaktionen (det andra kontot)
+    /// <summary>
+    ///  Gets the name of the other party in the transaction
+    /// </summary>
+    /// <param name="tx"></param>
+    /// <returns></returns>
     private string GetOtherPartyName(Transaction tx)
     {
         var fromName = AccountName(tx.FromAccountId);
@@ -184,6 +191,11 @@ else
         return $"{fromName} → {toName}";
     }
     
+    /// <summary>
+    ///  Gets the transaction type for display purposes
+    /// </summary>
+    /// <param name="tx"></param>
+    /// <returns></returns>
     private string GetTransactionTypeForDisplay(Transaction tx)
     {
         var isToInternal = tx.ToAccountId.HasValue && _accounts.Any(a => a.Id == tx.ToAccountId.Value);
@@ -257,7 +269,8 @@ else
         _sortDescending = !_sortDescending;
         StateHasChanged();
     }
-    //sorterar både datum och belopp
+    
+    // sort both date and amount
     private IEnumerable<Transaction> GetSortedTransactions()
     {
         if (_transactions == null) return Enumerable.Empty<Transaction>();
@@ -273,30 +286,35 @@ else
     }
     private async Task DeleteTransaction(Transaction tx)
     {
-        // Remove from backend (implement this in your service)
         await AccountService.DeleteTransactionAsync(tx.Id);
-    
-        // Remove from local list and refresh UI
+        
         _transactions?.Remove(tx);
         StateHasChanged();
     }
-// datumintervaller
-private IEnumerable<Transaction> GetFilteredAndSortedTransactions(DateTime startDate, DateTime endDate)
-{
-    if (_transactions == null) return Enumerable.Empty<Transaction>();
 
-    var filtered = _transactions
-        .Where(t => t.LastUpdated >= startDate && t.LastUpdated <= endDate .AddDays(1).AddTicks(-1)); // inkluderar hela slutdatumet
+    /// <summary>
+    /// Gets transactions filtered by date range and sorted
+    /// </summary>
+    /// <param name="startDate"></param>
+    /// <param name="endDate"></param>
+    /// <returns></returns>
+    private IEnumerable<Transaction> GetFilteredAndSortedTransactions(DateTime startDate, DateTime endDate)
+    {
+        if (_transactions == null) return Enumerable.Empty<Transaction>();
+
+        var filtered = _transactions
+            .Where(t => t.LastUpdated >= startDate && t.LastUpdated <= endDate .AddDays(1).AddTicks(-1)); // inkluderar hela slutdatumet
     
-    if (_sortByAmount)
-        return _sortAmountDescending
-            ? filtered.OrderByDescending(t => t.Amount)
-            : filtered.OrderBy(t => t.Amount);
+        if (_sortByAmount)
+            return _sortAmountDescending
+                ? filtered.OrderByDescending(t => t.Amount)
+                : filtered.OrderBy(t => t.Amount);
 
-    return _sortDescending
-        ? filtered.OrderByDescending(t => t.LastUpdated)
-        : filtered.OrderBy(t => t.LastUpdated);
+        return _sortDescending
+            ? filtered.OrderByDescending(t => t.LastUpdated)
+            : filtered.OrderBy(t => t.LastUpdated);
+    }
+    private DateTime StartDate { get; set; } = DateTime.Today.AddMonths(-1); // flyttar fram en månad som standard
+    private DateTime EndDate { get; set; } = DateTime.Today; // dagens datum som standard
 }
-private DateTime StartDate { get; set; } = DateTime.Today.AddMonths(-1); // flyttar fram en månad som standard
-private DateTime EndDate { get; set; } = DateTime.Today; // dagens datum som standard
-}
+

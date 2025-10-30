@@ -3,12 +3,15 @@
 
 <PageTitle>Home</PageTitle>
 
+<!-- Header of the page -->
 <h1 style="font-weight: bold; font-family: 'Arial', sans-serif;">Välkommen till AlbertBankApp</h1>
 
+<!-- General information -->
 <br/>
 <p>Här kan du skapa bankkonton, göra överföringar och se din transaktionshistorik.</p>
 <p>Använd navigationsmenyn för att komma igång.</p>
 
+<!-- Waiting text or if no accounts are made -->
 @if (accounts == null)
 {
     <p>Laddar konton...</p>
@@ -19,6 +22,8 @@ else if (!accounts.Any())
 }
 else
 {
+    
+    <!-- Display created account(s) -->
     <h3>Dina konton</h3>
     <table style="width:60%; border-collapse: collapse; font-family: Arial, sans-serif;">
         <thead style="background-color: #f2f2f2;">
@@ -51,6 +56,7 @@ else
     </table>
 }
 
+<!-- Managing account(s) for withdraw and deposit -->
 @if (selectedAccount != null)
 {
     <div style="margin-top:30px; padding:16px; border:1px solid #ccc; border-radius:8px; max-width:400px;">
@@ -74,6 +80,9 @@ else
 }
 
 @code {
+    /// <summary>
+    /// List of bank accounts for the user
+    /// </summary>
     private IReadOnlyList<AlbertBankApp.Domain.BankAccount>? accounts;
     private AlbertBankApp.Domain.BankAccount? selectedAccount;
     private decimal amount;
@@ -81,18 +90,28 @@ else
     private string? message;
     private bool messageSuccess;
 
+    /// <summary>
+    /// OnInitializedAsync is called when the component is initialized
+    /// </summary>
     protected override async Task OnInitializedAsync()
     {
         await LoadAccounts();
     }
-
+    
+    /// <summary>
+    /// Loads the user's bank accounts
+    /// </summary>
     private async Task LoadAccounts()
     {
         accounts = await AccountService.GetAccountsAsync();
         if (selectedAccount != null && accounts != null)
             selectedAccount = accounts.FirstOrDefault(a => a.Id == selectedAccount.Id);
     }
-
+    
+    /// <summary>
+    /// Selects a bank account for deposit/withdrawal
+    /// </summary>
+    /// <param name="account"></param>
     private void SelectAccount(AlbertBankApp.Domain.BankAccount account)
     {
         selectedAccount = account;
@@ -100,7 +119,10 @@ else
         note = string.Empty;
         message = null;
     }
-
+    
+    /// <summary>
+    /// Deposits an amount into the selected account
+    /// </summary>
     private async Task Deposit()
     {
         if (selectedAccount == null || amount <= 0)
@@ -122,7 +144,10 @@ else
             messageSuccess = false;
         }
     }
-
+    
+    /// <summary>
+    /// Withdraws an amount from the selected account
+    /// </summary>
     private async Task Withdraw()
     {
         if (selectedAccount == null || amount <= 0)
