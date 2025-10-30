@@ -16,14 +16,14 @@
 <EditForm EditContext="_editContext" OnSubmit="HandleSubmit">
     
     <!-- Name input -->
-    <div class="mb-2">
+    <div class="mb-2" style="max-width:420px;">
         <label for="nameInput">Namn</label>
         <InputText id="nameInput" class="form-control" @bind-Value="_model.Name" />
         <ValidationMessage For="@(() => _model.Name)" />
     </div>
     
     <!-- Choosing account type -->
-    <div class="mb-2">
+    <div class="mb-2" style="max-width: 420px">
         <label for="typeSelect">Kontotyp</label>
         <InputSelect id="typeSelect" class="form-select" @bind-Value="_model.Type">
             @foreach (var t in Enum.GetValues<AccountType>())
@@ -35,7 +35,7 @@
     </div>
     
     <!-- Choosing currency -->
-    <div class="mb-2">
+    <div class="mb-2" style="max-width: 420px">
         <label for="currencySelect">Valuta</label>
         <InputSelect id="currencySelect" class="form-select" @bind-Value="_model.Currency">
             @foreach (var c in Enum.GetValues<CurrencyType>())
@@ -47,7 +47,7 @@
     </div>
     
     <!-- Starting balance for account -->
-    <div class="mb-2">
+    <div class="mb-2" style="max-width: 420px">
         <label for="balanceInput">Startsaldo</label>
         <InputNumber id="balanceInput" class="form-control" @bind-Value="_model.InitialBalance" />
         <ValidationMessage For="@(() => _model.InitialBalance)" />
@@ -56,7 +56,7 @@
     <!-- Interest rate (only for Sparkonto) -->
     @if (_model.Type == AccountType.Sparkonto)
     {
-        <div class="mb-2">
+        <div class="mb-2" style="max-width: 420px">
             <label for="interestInput">Ränta (%)</label>
             <InputNumber id="interestInput" class="form-control" @bind-Value="_model.InterestRate" />
             <ValidationMessage For="@(() => _model.InterestRate)" />
@@ -73,7 +73,7 @@
 <h3>Konton:</h3>
 @if (_accounts.Any())
 {
-    <table class="table">
+    <table class="table" style="max-width: 900px;">
         <thead>
             <tr>
                 <th>Namn</th>

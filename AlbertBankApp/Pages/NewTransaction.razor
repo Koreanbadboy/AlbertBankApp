@@ -13,7 +13,7 @@ else
     <EditForm Model="_transferModel" OnValidSubmit="HandleTransfer">
 
         <!-- From Account dropdown -->
-        <div class="mb-3">
+        <div class="mb-3" style="max-width: 400px;">
             <label for="fromAccount" class="form-label">Från konto</label>
             <InputSelect id="fromAccount" class="form-select" @bind-Value="_transferModel.FromAccountId" @bind-Value:after="FromAccountChanged">
                 <option value="@Guid.Empty">Välj konto</option>
@@ -25,7 +25,7 @@ else
         </div>
         
         <!-- To Account dropdown -->
-        <div class="mb-3">
+        <div class="mb-3" style="max-width: 400px;">
             <label for="toAccount" class="form-label">Till konto</label>
             <InputSelect id="toAccount" class="form-select" @bind-Value="_transferModel.ToAccountId">
                 <option value="@Guid.Empty">Välj konto</option>
@@ -36,7 +36,7 @@ else
             </InputSelect>
         </div>
 
-        <div class="mb-3">
+        <div class="mb-3" style="max-width: 400px;">
             <label for="amount" class="form-label">Belopp</label>
             <InputNumber id="amount" class="form-control" @bind-Value="_transferModel.Amount" />
         </div>
@@ -54,7 +54,7 @@ else
         @if (_history.Any())
         {
             <h4 class="mt-4">Transaktionshistorik</h4>
-            <table class="table">
+            <table class="table" style="max-width: 900px;">
                 <thead>
                     <tr>
                         <th>Datum</th>
