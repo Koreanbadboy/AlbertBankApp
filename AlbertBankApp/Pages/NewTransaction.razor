@@ -35,12 +35,14 @@ else
                 }
             </InputSelect>
         </div>
-
+        
+        <!-- Amount input -->
         <div class="mb-3" style="max-width: 400px;">
             <label for="amount" class="form-label">Belopp</label>
             <InputNumber id="amount" class="form-control" @bind-Value="_transferModel.Amount" />
         </div>
-
+        
+        <!-- Error message display -->
         @if (!string.IsNullOrEmpty(_errorMessage))
         {
             <div class="alert alert-danger">@_errorMessage</div>
@@ -50,20 +52,21 @@ else
         <br/>
         
         <!-- Transaction history -->
-        
         @if (_history.Any())
         {
             <h4 class="mt-4">Transaktionshistorik</h4>
             <table class="table" style="max-width: 900px;">
                 <thead>
-                    <tr>
-                        <th>Datum</th>
-                        <th>Från konto</th>
-                        <th>Till konto</th>
-                        <th>Belopp</th>
-                        <th></th> <!-- Column for delete button -->
-                    </tr>
+                <tr>
+                    <th>Datum</th>
+                    <th>Från konto</th>
+                    <th>Till konto</th>
+                    <th>Belopp</th>
+                    <th></th> <!-- Column for delete button -->
+                </tr>
                 </thead>
+                
+                <!-- Transaction rows -->
                 <tbody>
                     @foreach (var transaction in _history.OrderByDescending(t => t.TimeStamp))
                     {
@@ -133,27 +136,26 @@ else
                 _transferModel.ToAccountId,
                 _transferModel.Amount);
 
-            // Ladda om konton & historik
+            // update accounts and history after transfer
             _accounts = (await AccountService.GetAccountsAsync()).ToList();
             _toAccounts = _accounts.Where(a => a.Id != _transferModel.FromAccountId).ToList();
             _history = _accounts.SelectMany(a => a.Transactions)
                 .OrderByDescending(t => t.TimeStamp)
                 .ToList();
-
-            // (Valfritt) nolla formuläret
+            
+            // reset form
             _transferModel.Amount = 0;
             _transferModel.ToAccountId = Guid.Empty;
         }
         catch (Exception ex)
         {
-            _errorMessage = ex.Message; // fel visas om något går fel i TransferAsync
+            _errorMessage = ex.Message;
         }
     }
 
     /// <summary>
     /// Deletes a transaction
     /// </summary>
-    /// <param name="transaction"></param>
     private async Task DeleteTranscation(Transaction transaction)
     {
         await AccountService.DeleteTransactionAsync(transaction.Id);

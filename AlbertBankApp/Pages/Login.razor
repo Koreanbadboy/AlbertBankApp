@@ -42,7 +42,6 @@
     /// <summary>
     ///  Allows only digit characters in the input
     /// </summary>
-    /// <param name="e"></param>
     private void OnlyDigits(ChangeEventArgs e)
     {
         var value = e.Value?.ToString() ?? string.Empty;
@@ -58,8 +57,6 @@
     /// <summary>
     ///  Checks if a string contains only digit characters
     /// </summary>
-    /// <param name="str"></param>
-    /// <returns></returns>
     private bool IsDigitsOnly(string str)
     {
         if (string.IsNullOrEmpty(str)) return false;

@@ -43,7 +43,6 @@ public class AccountService : IAccountService
     /// <summary>
     ///  Gets all bank accounts
     /// </summary>
-    /// <returns></returns>
     public async Task<IReadOnlyList<BankAccount>> GetAccountsAsync()
     {
         await EnsureLoadedAsync();
@@ -120,7 +119,7 @@ public class AccountService : IAccountService
     /// <summary>
     ///  Gets transactions for a specific bank account in history page
     /// </summary>
-    /// <exception cref="InvalidOperationException"></exception>
+    /// <exception cref="InvalidOperationException">If the accounts could not be found</exception>
     public async Task<IReadOnlyList<Transaction>> GetTransactionsAsync(Guid accountId)
     {
         await EnsureLoadedAsync();
@@ -132,7 +131,6 @@ public class AccountService : IAccountService
     /// <summary>
     ///  Deletes a bank account
     /// </summary>
-    /// <param name="accountId"></param>
     public async Task DeleteAccountAsync(Guid accountId)
     {
         await EnsureLoadedAsync();
@@ -144,13 +142,13 @@ public class AccountService : IAccountService
         }
     }
     
-    /// <summary>
-    ///  Transfers an amount from one bank account to another
+    /// /// <summary>
+    /// Transfers a specified amount of money from one bank account to another.
     /// </summary>
-    /// <param name="fromAccountId"></param>
-    /// <param name="toAccountId"></param>
-    /// <param name="amount"></param>
-    /// <exception cref="InvalidOperationException"></exception>
+    /// <param name="fromAccountId">The unique identifier of the source account.</param>
+    /// <param name="toAccountId">The unique identifier of the destination account.</param>
+    /// <param name="amount">The amount of money to transfer. Must be greater than zero.</param>
+    /// <exception cref="InvalidOperationException">Thrown if either account cannot be found, or if the source account has insufficient funds.</exception>
     public async Task TransferAsync(Guid fromAccountId, Guid toAccountId, decimal amount)
     {
         if (fromAccountId == Guid.Empty)
@@ -185,7 +183,7 @@ public class AccountService : IAccountService
     /// <summary>
     ///  Deletes a specific transaction by its ID
     /// </summary>
-    /// <param name="txId"></param>
+    /// <param name="txId">The specific transaction to deletee</param>
     public async Task DeleteTransactionAsync(Guid txId)
     {
         await EnsureLoadedAsync();
@@ -203,7 +201,6 @@ public class AccountService : IAccountService
     /// <summary>
     ///  Gets all bank accounts as IBankAccount
     /// </summary>
-    /// <returns></returns>
     public List<IBankAccount> GetAccounts()
     {
         return _accounts.Cast<IBankAccount>().ToList();
@@ -232,9 +229,9 @@ public class AccountService : IAccountService
     /// <summary>
     ///  Changes the interest rate of a Sparkonto account
     /// </summary>
-    /// <param name="accountId"></param>
-    /// <param name="delta"></param>
-    /// <exception cref="InvalidOperationException"></exception>
+    /// <param name="accountId">The specific account for change of interest rate</param>
+    /// <param name="delta">The change to apply to the current interest rate</param>
+    /// <exception cref="InvalidOperationException">Thrown if the account cannot be found or if the account type is not</exception>
     public async Task ChangeInterestAsync(Guid accountId, decimal delta)
     {
         await EnsureLoadedAsync();
@@ -257,7 +254,7 @@ public class AccountService : IAccountService
     /// <summary>
     ///  Applies interest to a Sparkonto account
     /// </summary>
-    /// <param name="accountId"></param>
+    /// <param name="accountId">Specific account for applying of interest rate</param>
     public async Task ApplyInterestAsync(Guid accountId)
     {
         await EnsureLoadedAsync();

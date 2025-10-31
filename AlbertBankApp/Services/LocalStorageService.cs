@@ -34,9 +34,9 @@ public class LocalStorageService : ILocalStorageService
     /// <summary>
     ///  Saves an item to local storage
     /// </summary>
-    /// <param name="key"></param>
-    /// <param name="value"></param>
-    /// <typeparam name="T"></typeparam>
+    /// <param name="key">The key under which the item will be stored in local storage</param>
+    /// <param name="value">The value to store. It will be serialized to JSON</param>
+    /// <typeparam name="T">The type of the object to store</typeparam>
     public async Task SetItemAsync<T>(string key, T value)
     {
         var json = JsonSerializer.Serialize(value);
@@ -46,7 +46,7 @@ public class LocalStorageService : ILocalStorageService
     /// <summary>
     ///  Removes an item from local storage
     /// </summary>
-    /// <param name="key"></param>
+    /// <param name="key">The key of the item to remove from local storage</param>
     public async Task RemoveItemAsync(string key)
     {
         await _jsRuntime.InvokeVoidAsync("localStorage.removeItem", key);

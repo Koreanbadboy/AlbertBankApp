@@ -226,7 +226,7 @@ else
     /// <summary>
     /// Deletes an account
     /// </summary>
-    /// <param name="accountId"></param>
+    /// <param name="accountId">Specific Account-ID</param>
     private async Task DeleteAccountAsync(Guid accountId)
     {
         await AccountService.DeleteAccountAsync(accountId);
@@ -237,7 +237,7 @@ else
     /// <summary>
     ///  Increases the interest rate of an account by 1%
     /// </summary>
-    /// <param name="accountId"></param>
+    /// <param name="accountId">Specific Account-ID</param>
     private async Task IncreaseAccountInterest(Guid accountId)
     {
         await AccountService.ChangeInterestAsync(accountId, 0.01m); // Increase by 1%
@@ -247,7 +247,7 @@ else
     /// <summary>
     ///  Decreases the interest rate of an account by 1%
     /// </summary>
-    /// <param name="accountId"></param>
+    /// <param name="accountId">Specific Account-ID</param>
     private async Task DecreaseAccountInterest(Guid accountId)
     {
         await AccountService.ChangeInterestAsync(accountId, -0.01m); // Decrease by 1%

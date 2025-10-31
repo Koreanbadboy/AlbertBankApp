@@ -13,6 +13,6 @@ public interface IBankAccount
     DateTime LastUpdated { get; }
     IReadOnlyList<Transaction> Transactions { get; } 
     
-    void Deposit(decimal amount, Guid fromAccountId, string fromAccountName, string description);
-    void Withdraw(decimal amount, Guid toAccountId, string toAccountName, string description);
+    void Deposit(decimal amount, Guid fromAccountId, string fromAccountName);
+    void Withdraw(decimal amount, Guid toAccountId, string toAccountName);
 }

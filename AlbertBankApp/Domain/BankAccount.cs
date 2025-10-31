@@ -31,13 +31,6 @@ public class BankAccount : IBankAccount
     /// <summary>
     ///  Initializes a new instance of the "BankAccount" class with specified parameters
     /// </summary>
-    /// <param name="id"></param>
-    /// <param name="name"></param>
-    /// <param name="accountType"></param>
-    /// <param name="currency"></param>
-    /// <param name="initialBalance"></param>
-    /// <param name="lastUpdated"></param>
-    /// <param name="transactions"></param>
     [JsonConstructor]
     public BankAccount(Guid id, string name, AccountType accountType, CurrencyType currency, decimal initialBalance, DateTime lastUpdated, IReadOnlyList<Transaction> transactions)
     {
@@ -109,21 +102,31 @@ public class BankAccount : IBankAccount
         });
         LastUpdated = now;
     }
-
-    public void Deposit(decimal amount, Guid fromAccountId, string fromAccountName, string description)
+    
+    /// <summary>
+    ///  Deposits a specified amount into this account from a source account.
+    /// </summary>
+    /// <param name="amount">Specific amount</param>
+    /// <param name="fromAccountId">Specific from-account-id</param>
+    /// <param name="fromAccountName">Specific from-account-name</param>
+    public void Deposit(decimal amount, Guid fromAccountId, string fromAccountName)
     {
         amount = amount;
         fromAccountId = fromAccountId;
         fromAccountName = fromAccountName;
-        description = description;
     }
 
-    public void Withdraw(decimal amount, Guid toAccountId, string toAccountName, string description)
+    /// <summary>
+    ///  Withdraws a specified amount from this account to a target account.
+    /// </summary>
+    /// <param name="amount">Specific amount</param>
+    /// <param name="toAccountId">Specific to-account-id</param>
+    /// <param name="toAccountName">Specific to-account-name</param>
+    public void Withdraw(decimal amount, Guid toAccountId, string toAccountName)
     {
         amount = amount;
         toAccountId = toAccountId;
         toAccountName = toAccountName;
-        description = description;
     }
 
     /// <summary>
@@ -208,16 +211,16 @@ public class BankAccount : IBankAccount
     }
     
     /// <summary>
-    ///  Initializes a new instance of the "BankAccount" class with specified parameters
+    /// Initializes a new instance of the "BankAccount" class with the specified parameters.
     /// </summary>
-    /// <param name="id"></param>
-    /// <param name="name"></param>
-    /// <param name="accountType"></param>
-    /// <param name="currency"></param>
-    /// <param name="transactions"></param>
-    /// <param name="initialBalance"></param>
-    /// <param name="interestRate"></param>
-    /// <exception cref="ArgumentNullException"></exception>
+    /// <param name="id">Unique identifier for the account. A new ID will be generated if none is provided.</param>
+    /// <param name="name">The name of the account.</param>
+    /// <param name="accountType">The type of account (e.g., Checking, Savings).</param>
+    /// <param name="currency">The currency used for the account.</param>
+    /// <param name="transactions">An optional list of transactions to initialize the account with.</param>
+    /// <param name="initialBalance">The starting balance of the account (default is 0).</param>
+    /// <param name="interestRate">The interest rate for savings accounts, if applicable.</param>
+    /// <exception cref="ArgumentNullException">Thrown if > is null.</exception>
     public BankAccount(Guid id, string name, AccountType accountType, CurrencyType currency, IReadOnlyList<Transaction> transactions, decimal initialBalance = 0m, decimal? interestRate = null)
     {
         _transactions = transactions != null ? new List<Transaction>(transactions) : new List<Transaction>();

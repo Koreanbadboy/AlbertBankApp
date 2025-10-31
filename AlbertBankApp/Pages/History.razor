@@ -175,8 +175,6 @@ else
     /// <summary>
     ///  Gets the name of the other party in the transaction
     /// </summary>
-    /// <param name="tx"></param>
-    /// <returns></returns>
     private string GetOtherPartyName(Transaction tx)
     {
         var fromName = AccountName(tx.FromAccountId);
@@ -193,8 +191,6 @@ else
     /// <summary>
     ///  Gets the transaction type for display purposes
     /// </summary>
-    /// <param name="tx"></param>
-    /// <returns></returns>
     private string GetTransactionTypeForDisplay(Transaction tx)
     {
         var isToInternal = tx.ToAccountId.HasValue && _accounts.Any(a => a.Id == tx.ToAccountId.Value);
@@ -279,7 +275,6 @@ else
     /// <summary>
     ///  Gets transactions sorted by the selected criteria
     /// </summary>
-    /// <returns></returns>
     private IEnumerable<Transaction> GetSortedTransactions()
     {
         if (_transactions == null) return Enumerable.Empty<Transaction>();
@@ -297,7 +292,6 @@ else
     /// <summary>
     ///  Deletes a transaction
     /// </summary>
-    /// <param name="tx"></param>
     private async Task DeleteTransaction(Transaction tx)
     {
         await AccountService.DeleteTransactionAsync(tx.Id);
@@ -309,9 +303,8 @@ else
     /// <summary>
     /// Gets transactions filtered by date range and sorted
     /// </summary>
-    /// <param name="startDate"></param>
-    /// <param name="endDate"></param>
-    /// <returns></returns>
+    /// <param name="startDate">Start date of interval</param>
+    /// <param name="endDate">End date of interval</param>
     private IEnumerable<Transaction> GetFilteredAndSortedTransactions(DateTime startDate, DateTime endDate)
     {
         if (_transactions == null) return Enumerable.Empty<Transaction>();
