@@ -103,7 +103,7 @@
                 <td>
                     @if (account.AccountType == AccountType.Sparkonto)
                     {
-                        <button class="btn btn-outline-danger btn-sm ms-1"
+                        <button class="btn btn-outline-danger btn-sm"
                                 @onclick="() => AdjustBalanceByPercent(account.Id, false)">-1%</button>
                         <button class="btn btn-outline-success btn-sm"
                                 @onclick="() => AdjustBalanceByPercent(account.Id, true)">+1%</button>
