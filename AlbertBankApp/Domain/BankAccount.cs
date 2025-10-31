@@ -128,30 +128,31 @@ public class BankAccount : IBankAccount
         toAccountId = toAccountId;
         toAccountName = toAccountName;
     }
-
+    
     /// <summary>
-    /// Transfers a specified amount from this account to a target account, with an optional note.
+    ///  Transfers a specified amount from this account to a target account
     /// </summary>
-    /// <param name="target">The target bank account to transfer funds to.</param>
-    /// <param name="amount">The amount to transfer.</param>
-    /// <param name="note">Optional note or description for the transfer.</param>
-    /// <exception cref="ArgumentNullException">Thrown if the target account is null.</exception>
-    /// <exception cref="InvalidOperationException">Thrown if transferring to the same account or if funds are insufficient.</exception>
-    /// <exception cref="ArgumentOutOfRangeException">Thrown if the amount is not positive.</exception>
-    public void TransferTo(BankAccount target, decimal amount, string? note = null)
+    /// <param name="target">The target bank account to transfer funds to</param>
+    /// <param name="amount">The amount to transfer</param>
+    /// <exception cref="ArgumentNullException">Thrown if the target account is null</exception>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown if the amount is not positive</exception>
+    /// <exception cref="InvalidOperationException">Thrown if funds are insufficient</exception>
+    public void TransferTo(BankAccount target, decimal amount)
     {
-        if (target is null) throw new ArgumentNullException(nameof(target));
-        if (target.Id == Id) throw new InvalidOperationException("Kan inte överföra till samma konto.");
-        if (amount <= 0) throw new ArgumentOutOfRangeException(nameof(amount), "Beloppet måste vara positivt");
-        if (amount > Balance) throw new InvalidOperationException("Otillräckliga medel för överföring.");
+        if (target is null)
+            throw new ArgumentNullException(nameof(target));
+        if (amount <= 0)
+            throw new ArgumentOutOfRangeException(nameof(amount), "Beloppet måste vara positivt.");
+        if (amount > Balance)
+            throw new InvalidOperationException("Otillräckliga medel för överföring.");
 
         var now = DateTime.UtcNow;
         var beforeSource = Balance;
-        
+
         Balance -= amount;
         target.Balance += amount;
 
-        var tx = new Transaction
+        var transaction = new Transaction
         {
             Id = Guid.NewGuid(),
             TimeStamp = now,
@@ -159,7 +160,7 @@ public class BankAccount : IBankAccount
             FromAccountId = Id,
             ToAccountId = target.Id,
             TransactionType = TransactionType.Transfer,
-            Note = string.IsNullOrWhiteSpace(note) ? $"Överföring från {Name} till {target.Name}" : note,
+            Note = $"Överföring från {Name} till {target.Name}",
             BalanceBefore = beforeSource,
             BalanceAfter = Balance,
             FromAccountName = Name,
@@ -167,8 +168,8 @@ public class BankAccount : IBankAccount
             LastUpdated = now
         };
 
-        _transactions.Add(tx);
-        target._transactions.Add(tx);
+        _transactions.Add(transaction);
+        target._transactions.Add(transaction);
 
         LastUpdated = now;
         target.LastUpdated = now;
@@ -196,19 +197,6 @@ public class BankAccount : IBankAccount
         LastUpdated = DateTime.UtcNow;
     }
     
-    /// <summary>
-    /// Initializes a new instance of the "BankAccount" class with default values
-    /// </summary>
-    public BankAccount(IReadOnlyList<Transaction> transactions)
-    {
-        _transactions = transactions != null ? new List<Transaction>(transactions) : new List<Transaction>();
-        Id = Guid.NewGuid();
-        Name = string.Empty;
-        AccountType = default;
-        Currency = default;
-        Balance = 0m;
-        LastUpdated = DateTime.UtcNow;
-    }
     
     /// <summary>
     /// Initializes a new instance of the "BankAccount" class with the specified parameters.
@@ -235,30 +223,5 @@ public class BankAccount : IBankAccount
 
         if (initialBalance > 0)
             Deposit(initialBalance, "Initial balance");
-    }
-    
-    /// <summary>
-    /// InterestRate method for Sparkonto account
-    /// </summary>
-    public void ApplyInterest()
-    {
-        if (AccountType == AccountType.Sparkonto && InterestRate.HasValue && InterestRate != 0)
-        {
-            var interest = Balance * InterestRate.Value;
-            var newBalance = Balance + interest;
-    
-            if (newBalance < InitialBalance)
-            {
-                Balance = InitialBalance;
-            }
-            else if (interest > 0)
-            {
-                Deposit(interest, "Ränteinsättning");
-            }
-            else if (-interest <= Balance)
-            {
-                Withdraw(-interest, "Negativ ränta");
-            }
-        }
     }
 }

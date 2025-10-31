@@ -19,7 +19,7 @@ else
                 <option value="@Guid.Empty">Välj konto</option>
                 @foreach (var account in _accounts)
                 {
-                    <option value="@account.Id">@account.Name (@account.InitialBalance.ToString("C"))</option>
+                    <option value="@account.Id">@account.Name (@account.Balance.ToString("C"))</option>
                 }
             </InputSelect>
         </div>
@@ -31,7 +31,7 @@ else
                 <option value="@Guid.Empty">Välj konto</option>
                 @foreach (var account in _toAccounts)
                 {
-                    <option value="@account.Id">@account.Name (@account.InitialBalance.ToString("C"))</option>
+                    <option value="@account.Id">@account.Name (@account.Balance.ToString("C"))</option>
                 }
             </InputSelect>
         </div>

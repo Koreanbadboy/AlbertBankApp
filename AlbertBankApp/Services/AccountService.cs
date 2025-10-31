@@ -17,7 +17,7 @@ public class AccountService : IAccountService
     {
         _storage = storage;
     }
-    
+
     /// <summary>
     /// Ensures that accounts are loaded from storage
     /// </summary>
@@ -31,7 +31,7 @@ public class AccountService : IAccountService
             _loaded = true;
         }
     }
-    
+
     /// <summary>
     ///  Saves accounts to storage
     /// </summary>
@@ -39,7 +39,7 @@ public class AccountService : IAccountService
     {
         await _storage.SetItemAsync(StorageKey, _accounts);
     }
-    
+
     /// <summary>
     ///  Gets all bank accounts
     /// </summary>
@@ -70,11 +70,12 @@ public class AccountService : IAccountService
         await SaveAsync();
         return newAccount;
     }
-    
+
     /// <summary>
     ///  Creates a new bank account with initial transactions (needs only if importing with Json)
     /// </summary>
-    public async Task<BankAccount> CreateAccountAsync(string name, AccountType accountType, CurrencyType currency, IReadOnlyList<Transaction> initialTransactions, decimal? interestRate = null)
+    public async Task<BankAccount> CreateAccountAsync(string name, AccountType accountType, CurrencyType currency,
+        IReadOnlyList<Transaction> initialTransactions, decimal? interestRate = null)
     {
         await EnsureLoadedAsync();
         var newAccount = new BankAccount(
@@ -90,7 +91,7 @@ public class AccountService : IAccountService
         await SaveAsync();
         return newAccount;
     }
-    
+
     /// <summary>
     ///  Deposits an amount into a bank account
     /// </summary>
@@ -102,7 +103,7 @@ public class AccountService : IAccountService
         account.Deposit(amount, note);
         await SaveAsync();
     }
-    
+
     /// <summary>
     /// Withdraws an amount from a bank account
     /// </summary>
@@ -115,7 +116,7 @@ public class AccountService : IAccountService
         account.Withdraw(amount, note);
         await SaveAsync();
     }
-    
+
     /// <summary>
     ///  Gets transactions for a specific bank account in history page
     /// </summary>
@@ -127,7 +128,7 @@ public class AccountService : IAccountService
                       ?? throw new InvalidOperationException("Kontot hittades inte");
         return account.Transactions;
     }
-    
+
     /// <summary>
     ///  Deletes a bank account
     /// </summary>
@@ -141,7 +142,7 @@ public class AccountService : IAccountService
             await SaveAsync();
         }
     }
-    
+
     /// /// <summary>
     /// Transfers a specified amount of money from one bank account to another.
     /// </summary>
@@ -153,30 +154,22 @@ public class AccountService : IAccountService
     {
         if (fromAccountId == Guid.Empty)
             throw new InvalidOperationException("Välj ett från-konto.");
-        
+
         if (toAccountId == Guid.Empty)
             throw new InvalidOperationException("Välj ett till-konto.");
-        
-        if (fromAccountId == toAccountId)
-            throw new InvalidOperationException("Kan inte överföra till samma konto.");
-        
+
         if (amount <= 0)
             throw new InvalidOperationException("Ange ett giltigt belopp större än 0.");
-        
+
         await EnsureLoadedAsync();
 
         var fromAccount = _accounts.FirstOrDefault(a => a.Id == fromAccountId);
         var toAccount = _accounts.FirstOrDefault(a => a.Id == toAccountId);
-        
-        if (fromAccount is null)
-            throw new InvalidOperationException("Från-kontot hittades inte.");
-        if (toAccount is null)
-            throw new InvalidOperationException("Till-kontot hittades inte.");
-        
+
         if (fromAccount.Balance < amount)
             throw new InvalidOperationException("Otillräckligt saldo på från-kontot.");
         fromAccount.TransferTo(toAccount, amount);
-        
+
         await SaveAsync();
     }
 
@@ -197,7 +190,7 @@ public class AccountService : IAccountService
             }
         }
     }
-    
+
     /// <summary>
     ///  Gets all bank accounts as IBankAccount
     /// </summary>
@@ -205,7 +198,7 @@ public class AccountService : IAccountService
     {
         return _accounts.Cast<IBankAccount>().ToList();
     }
-    
+
     /// <summary>
     ///  Saves accounts to storage
     /// </summary>
@@ -213,7 +206,7 @@ public class AccountService : IAccountService
     {
         await _storage.SetItemAsync(StorageKey, _accounts);
     }
-    
+
     /// <summary>
     ///  Validates the provided PIN code
     /// </summary>
@@ -224,45 +217,5 @@ public class AccountService : IAccountService
     public Task<bool> ValidatePinAsync(string pin)
     {
         return Task.FromResult(pin == _correctPin);
-    }
-
-    /// <summary>
-    ///  Changes the interest rate of a Sparkonto account
-    /// </summary>
-    /// <param name="accountId">The specific account for change of interest rate</param>
-    /// <param name="delta">The change to apply to the current interest rate</param>
-    /// <exception cref="InvalidOperationException">Thrown if the account cannot be found or if the account type is not</exception>
-    public async Task ChangeInterestAsync(Guid accountId, decimal delta)
-    {
-        await EnsureLoadedAsync();
-
-        var account = _accounts.FirstOrDefault(a => a.Id == accountId)
-                      ?? throw new InvalidOperationException("Account not found.");
-
-        if (account.AccountType != AccountType.Sparkonto)
-            throw new InvalidOperationException("Interest can only be changed for Sparkonto accounts.");
-
-        account.InterestRate ??= 0m;
-        account.InterestRate = Math.Max(0m, account.InterestRate.Value + delta);
-
-        // counts new balance based on initial balance and new interest rate
-        account.Balance = account.InitialBalance * (1 + (account.InterestRate ?? 0));
-
-        await SaveAsync();
-    }
-
-    /// <summary>
-    ///  Applies interest to a Sparkonto account
-    /// </summary>
-    /// <param name="accountId">Specific account for applying of interest rate</param>
-    public async Task ApplyInterestAsync(Guid accountId)
-    {
-        await EnsureLoadedAsync();
-        var account = _accounts.FirstOrDefault(a => a.Id == accountId);
-        if (account != null && account.InterestRate.HasValue)
-        {
-            account.Balance += account.Balance * account.InterestRate.Value;
-            await SaveAsync();
-        }
     }
 }
