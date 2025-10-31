@@ -160,8 +160,8 @@ else
         public string Name { get; set; } = string.Empty;
         public AccountType Type { get; set; }
         public CurrencyType Currency { get; set; } = CurrencyType.SEK;
-        public decimal InitialBalance { get; set; }
-        public decimal? InterestRate { get; set; } 
+        public decimal InitialBalance { get; set; } = 0;
+        public decimal? InterestRate { get; set; }
     }
     
     /// <summary>
@@ -171,7 +171,11 @@ else
     {
         _accounts = await AccountService.GetAccountsAsync();
     }
-
+    
+    /// <summary>
+    ///  Handles the form submission for creating a new account
+    /// </summary>
+    /// <param name="_"></param>
     private async Task HandleSubmit(EditContext _)
     {
         _messages!.Clear();
@@ -195,16 +199,16 @@ else
         }
         if (_model.Type == AccountType.Sparkonto && _model.InterestRate.HasValue) //ser till att räntan blir rätt procent
         {
-        _model.InterestRate /= 100m;
+            _model.InterestRate /= 100m;
         }
         
         // Create the account
-        await AccountService.CreateAccountAsync(
-            _model.Name,
-            _model.Type,
-            _model.Currency,
-            _model.InitialBalance,
-            _model.InterestRate
+        await ((AccountService)AccountService).CreateAccountAsync(
+            name: _model.Name,
+            accountType: _model.Type,
+            currency: _model.Currency,
+            initialBalance: _model.InitialBalance,
+            interestRate: _model.InterestRate
         );
 
         _successMessage = $"Kontot '{_model.Name}' har skapats.";
@@ -234,14 +238,16 @@ else
     private async Task IncreaseAccountInterest(Guid accountId)
     {
         await AccountService.ChangeInterestAsync(accountId, 0.01m); // Increase by 1%
-        await AccountService.ApplyInterestAsync(accountId);         // Apply interest to balance
         await LoadAccountsAsync();
     }
-
+    
+    /// <summary>
+    ///  Decreases the interest rate of an account by 1%
+    /// </summary>
+    /// <param name="accountId"></param>
     private async Task DecreaseAccountInterest(Guid accountId)
     {
         await AccountService.ChangeInterestAsync(accountId, -0.01m); // Decrease by 1%
-        await AccountService.ApplyInterestAsync(accountId);          // Apply interest to balance
         await LoadAccountsAsync();
     }
 }

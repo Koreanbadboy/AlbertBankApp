@@ -49,7 +49,7 @@ public class AccountService : IAccountService
         await EnsureLoadedAsync();
         return _accounts.AsReadOnly();
     }
-    
+
     /// <summary>
     ///  Creates a new bank account
     /// </summary>
@@ -63,8 +63,34 @@ public class AccountService : IAccountService
         decimal initialBalance = 0, decimal? interestRate = null)
     {
         await EnsureLoadedAsync();
-        var newAccount = new BankAccount(Guid.NewGuid(), name, accountType, currency, initialBalance, accountType == AccountType.Sparkonto?(interestRate ?? 0):null);
-
+        var transactions = new List<Transaction>();
+        var newAccount = new BankAccount(
+            Guid.NewGuid(),
+            name,
+            accountType,
+            currency,
+            transactions,
+            initialBalance,
+            accountType == AccountType.Sparkonto ? (interestRate ?? 0) : null
+        );
+        _accounts.Add(newAccount);
+        await SaveAsync();
+        return newAccount;
+    }
+    
+    // Implementerar interfacets version (krävs för att undvika compile error)
+    public async Task<BankAccount> CreateAccountAsync(string name, AccountType accountType, CurrencyType currency, IReadOnlyList<Transaction> initialTransactions, decimal? interestRate = null)
+    {
+        await EnsureLoadedAsync();
+        var newAccount = new BankAccount(
+            Guid.NewGuid(),
+            name,
+            accountType,
+            currency,
+            initialTransactions,
+            initialTransactions.Sum(t => t.Amount),
+            accountType == AccountType.Sparkonto ? (interestRate ?? 0) : null
+        );
         _accounts.Add(newAccount);
         await SaveAsync();
         return newAccount;
@@ -205,6 +231,9 @@ public class AccountService : IAccountService
     ///  Validates the provided PIN code
     /// </summary>
     private readonly string _correctPin = "1234";
+
+    private IAccountService _accountServiceImplementation;
+
     public Task<bool> ValidatePinAsync(string pin)
     {
         return Task.FromResult(pin == _correctPin);
@@ -229,12 +258,8 @@ public class AccountService : IAccountService
         account.InterestRate ??= 0m;
         account.InterestRate = Math.Max(0m, account.InterestRate.Value + delta);
 
-        // första-gången-skydd: om vi börjar med ränta på ett konto som redan har pengar
-        if (account.InitialBalance == 0m && account.Balance > 0m)
-            account.InitialBalance = account.Balance;
-
-        // uppdatera saldo via transaktioner (Räntejustering)
-        account.UpdateBalanceWithInterest();
+        // Räkna om saldot utifrån InitialBalance och ny ränta
+        account.Balance = account.InitialBalance * (1 + (account.InterestRate ?? 0));
 
         await SaveAsync();
     }

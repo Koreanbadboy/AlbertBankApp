@@ -11,29 +11,44 @@ namespace AlbertBankApp.Domain;
 /// </summary>
 public class BankAccount : IBankAccount
 {
-    public Guid Id { get; set; } = Guid.NewGuid();
-    public string Name { get; set; } = string.Empty;
-    public AccountType AccountType { get; set; }
-    public CurrencyType Currency { get; set; }
-    public decimal? InterestRate { get; set; } 
-    public decimal InitialBalance { get; set; }
-    
+    private readonly List<Transaction> _transactions;
+    public Guid Id { get; private set; } = Guid.NewGuid();
+    public string Name { get; private set; } = string.Empty;
+    public AccountType AccountType { get; private set; }
+    public CurrencyType Currency { get; private set; }
+    public decimal Balance { get; set; }
+    public decimal? InterestRate { get; internal set; } 
+    public decimal InitialBalance { get; internal set; }
+    public DateTime LastUpdated { get; private set; }
+    public IReadOnlyList<Transaction> Transactions => _transactions.AsReadOnly();
+
     public void UpdateBalanceWithInterest()
     {
         if (!InterestRate.HasValue) return;
-
-        Balance = InitialBalance * (1 + InterestRate.Value);
+        InitialBalance = InitialBalance * (1 + InterestRate.Value);
     }
     
-    [JsonInclude]
-    public decimal Balance { get; set; }
-
-    [JsonInclude]
-    public DateTime LastUpdated { get; private set; }
-
-    [JsonInclude]
-    private List<Transaction> _transactions = new();
-    public IReadOnlyList<Transaction> Transactions => _transactions.AsReadOnly();
+    /// <summary>
+    ///  Initializes a new instance of the "BankAccount" class with specified parameters
+    /// </summary>
+    /// <param name="id"></param>
+    /// <param name="name"></param>
+    /// <param name="accountType"></param>
+    /// <param name="currency"></param>
+    /// <param name="initialBalance"></param>
+    /// <param name="lastUpdated"></param>
+    /// <param name="transactions"></param>
+    [JsonConstructor]
+    public BankAccount(Guid id, string name, AccountType accountType, CurrencyType currency, decimal initialBalance, DateTime lastUpdated, IReadOnlyList<Transaction> transactions)
+    {
+        Id = id;
+        Name = name;
+        AccountType = accountType;
+        Currency = currency;
+        InitialBalance = initialBalance;
+        LastUpdated = lastUpdated;
+        _transactions = transactions != null ? new List<Transaction>(transactions) : new List<Transaction>();
+    }
 
     /// <summary>
     /// Specific account for deposit
@@ -45,10 +60,8 @@ public class BankAccount : IBankAccount
     {
         if (amount <= 0) throw new ArgumentOutOfRangeException(nameof(amount), "Beloppet måste vara positivt");
         var now = DateTime.UtcNow;
-
         var before = Balance;
         Balance += amount;
-
         _transactions.Add(new Transaction
         {
             Id = Guid.NewGuid(),
@@ -191,8 +204,9 @@ public class BankAccount : IBankAccount
     /// <summary>
     /// Initializes a new instance of the "BankAccount" class with default values
     /// </summary>
-    public BankAccount()
+    public BankAccount(IReadOnlyList<Transaction> transactions)
     {
+        _transactions = transactions != null ? new List<Transaction>(transactions) : new List<Transaction>();
         Id = Guid.NewGuid();
         Name = string.Empty;
         AccountType = default;
@@ -200,9 +214,21 @@ public class BankAccount : IBankAccount
         Balance = 0m;
         LastUpdated = DateTime.UtcNow;
     }
-    public BankAccount(Guid id, string name, AccountType accountType, CurrencyType currency,
-        decimal initialBalance = 0m, decimal? interestRate = null)
+    
+    /// <summary>
+    ///  Initializes a new instance of the "BankAccount" class with specified parameters
+    /// </summary>
+    /// <param name="id"></param>
+    /// <param name="name"></param>
+    /// <param name="accountType"></param>
+    /// <param name="currency"></param>
+    /// <param name="transactions"></param>
+    /// <param name="initialBalance"></param>
+    /// <param name="interestRate"></param>
+    /// <exception cref="ArgumentNullException"></exception>
+    public BankAccount(Guid id, string name, AccountType accountType, CurrencyType currency, IReadOnlyList<Transaction> transactions, decimal initialBalance = 0m, decimal? interestRate = null)
     {
+        _transactions = transactions != null ? new List<Transaction>(transactions) : new List<Transaction>();
         Id = id == default ? Guid.NewGuid() : id;
         Name = name ?? throw new ArgumentNullException(nameof(name));
         AccountType = accountType;

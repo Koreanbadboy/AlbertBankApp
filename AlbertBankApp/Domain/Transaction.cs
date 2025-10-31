@@ -10,6 +10,9 @@ public enum TransactionType
     Transfer,
 }
 
+/// <summary>
+/// Represents a financial transaction within the banking application.
+/// </summary>
 public class Transaction
 {
     public Guid Id { get; set; } = Guid.NewGuid();

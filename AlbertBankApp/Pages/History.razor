@@ -227,6 +227,8 @@ else
 
         return tx.TransactionType.ToString();
     }
+    
+    // Gets the account name by its ID
     private string AccountName(Guid? accountId)
     {
         if (!accountId.HasValue || accountId.Value == Guid.Empty)
@@ -238,6 +240,8 @@ else
 
         return "Okänt konto";
     }
+    
+    // Formats the amount for display, considering the selected account
     private string FormatAmount(Transaction tx)
     {
         if (!Guid.TryParse(SelectedAccountId, out var parsedAccountId))
@@ -246,6 +250,7 @@ else
         return Math.Abs(tx.Amount).ToString("C");
     }
     
+    // Determines the text color based on whether the transaction is an outgoing or incoming amount
     private string AmountTone(Transaction tx)
     {
         if (!Guid.TryParse(SelectedAccountId, out var parsedAccountId))
@@ -256,6 +261,7 @@ else
     private bool _sortAmountDescending = true;
     private bool _sortByAmount = false;
     
+    // Toggles sorting by amount
     private void ToggleAmountSort()
     {
         _sortByAmount = true;
@@ -263,6 +269,7 @@ else
         StateHasChanged();
     }
     
+    // Toggles sorting by date
     private void ToggleDateSort()
     {
         _sortByAmount = false;
@@ -270,7 +277,10 @@ else
         StateHasChanged();
     }
     
-    // sort both date and amount
+    /// <summary>
+    ///  Gets transactions sorted by the selected criteria
+    /// </summary>
+    /// <returns></returns>
     private IEnumerable<Transaction> GetSortedTransactions()
     {
         if (_transactions == null) return Enumerable.Empty<Transaction>();
