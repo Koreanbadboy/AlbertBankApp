@@ -19,4 +19,5 @@ public interface IAccountService
     List<IBankAccount> GetAccounts();
     Task SaveAccountsAsync();
     Task<bool> ValidatePinAsync(string pin);
+    Task AdjustBalanceByPercentAsync(Guid accountId, bool increase);
 }

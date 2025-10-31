@@ -99,6 +99,18 @@
                     @(account.InterestRate.HasValue ? (account.InterestRate.Value * 100).ToString("N2") + " %" : "-")
                 </td>
                 
+                <!-- Buttons for adjusting balance by 1% (only for Sparkonto) -->
+                <td>
+                    @if (account.AccountType == AccountType.Sparkonto)
+                    {
+                        <button class="btn btn-outline-danger btn-sm ms-1"
+                                @onclick="() => AdjustBalanceByPercent(account.Id, false)">-1%</button>
+                        <button class="btn btn-outline-success btn-sm"
+                                @onclick="() => AdjustBalanceByPercent(account.Id, true)">+1%</button>
+                    }
+                </td>
+
+                
                 <!-- Delete button -->
                 <td>
                     <button class="btn btn-danger btn-sm" @onclick="() => DeleteAccountAsync(account.Id)">Ta bort</button>
@@ -214,4 +226,15 @@ else
         await LoadAccountsAsync();
         StateHasChanged();
     }
+    
+    /// <summary>
+    /// Adjusts the balance of an account by a percentage
+    /// </summary>
+    private async Task AdjustBalanceByPercent(Guid accountId, bool increase)
+    {
+        await AccountService.AdjustBalanceByPercentAsync(accountId, increase);
+        await LoadAccountsAsync();
+        StateHasChanged();
+    }
+
 }

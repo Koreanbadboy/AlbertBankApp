@@ -212,10 +212,48 @@ public class AccountService : IAccountService
     /// </summary>
     private readonly string _correctPin = "1234";
 
-    private IAccountService _accountServiceImplementation;
-
     public Task<bool> ValidatePinAsync(string pin)
     {
         return Task.FromResult(pin == _correctPin);
+    }
+    
+    /// <summary>
+    ///  Adjusts the balance of a savings account by 1% and modifies the interest rate accordingly
+    /// </summary>
+    /// <param name="accountId">Specific account-id</param>
+    /// <param name="increase">Adjust interest rate</param>
+    public async Task AdjustBalanceByPercentAsync(Guid accountId, bool increase)
+    {
+        await EnsureLoadedAsync();
+
+        var account = _accounts.FirstOrDefault(a => a.Id == accountId);
+        if (account == null || account.AccountType != AccountType.Sparkonto)
+            return;
+
+        // Counting 1 percent of the current balance
+        decimal percent = account.Balance * 0.01m;
+
+        // increase or decease the balance
+        if (increase)
+            account.Deposit(percent, "Ökning med 1 %");
+        else
+            account.Withdraw(percent, "Minskning med 1 %");
+
+        // adjust the interest rate by 1 %
+        if (account.InterestRate == null)
+            account.InterestRate = 0m;
+
+        if (increase)
+            account.InterestRate += 0.01m;
+        else
+            account.InterestRate -= 0.01m;
+
+        // the interest rate must be between 0 % and 100 %
+        if (account.InterestRate < 0m)
+            account.InterestRate = 0m;
+        if (account.InterestRate > 1m)
+            account.InterestRate = 1m;
+
+        await SaveAsync();
     }
 }
