@@ -187,7 +187,6 @@ else
             if (tx.FromAccountId == accountId) return toName; 
             if (tx.ToAccountId == accountId) return fromName; 
         }
-        
         return $"{fromName} → {toName}";
     }
     
@@ -294,6 +293,11 @@ else
             ? _transactions.OrderByDescending(t => t.LastUpdated)
             : _transactions.OrderBy(t => t.LastUpdated);
     }
+    
+    /// <summary>
+    ///  Deletes a transaction
+    /// </summary>
+    /// <param name="tx"></param>
     private async Task DeleteTransaction(Transaction tx)
     {
         await AccountService.DeleteTransactionAsync(tx.Id);

@@ -51,14 +51,8 @@ public class AccountService : IAccountService
     }
 
     /// <summary>
-    ///  Creates a new bank account
+    ///  Creates a new bank account with an initial balance
     /// </summary>
-    /// <param name="name"></param>
-    /// <param name="accountType"></param>
-    /// <param name="currency"></param>
-    /// <param name="initialBalance"></param>
-    /// <param name="interestRate"></param>
-    /// <returns></returns>
     public async Task<BankAccount> CreateAccountAsync(string name, AccountType accountType, CurrencyType currency,
         decimal initialBalance = 0, decimal? interestRate = null)
     {
@@ -78,7 +72,9 @@ public class AccountService : IAccountService
         return newAccount;
     }
     
-    // Implementerar interfacets version (krävs för att undvika compile error)
+    /// <summary>
+    ///  Creates a new bank account with initial transactions (needs only if importing with Json)
+    /// </summary>
     public async Task<BankAccount> CreateAccountAsync(string name, AccountType accountType, CurrencyType currency, IReadOnlyList<Transaction> initialTransactions, decimal? interestRate = null)
     {
         await EnsureLoadedAsync();
@@ -99,10 +95,6 @@ public class AccountService : IAccountService
     /// <summary>
     ///  Deposits an amount into a bank account
     /// </summary>
-    /// <param name="accountId"></param>
-    /// <param name="amount"></param>
-    /// <param name="note"></param>
-    /// <exception cref="InvalidOperationException"></exception>
     public async Task DepositAsync(Guid accountId, decimal amount, string? note = null)
     {
         await EnsureLoadedAsync();
@@ -115,10 +107,7 @@ public class AccountService : IAccountService
     /// <summary>
     /// Withdraws an amount from a bank account
     /// </summary>
-    /// <param name="accountId"></param>
-    /// <param name="amount"></param>
-    /// <param name="note"></param>
-    /// <exception cref="InvalidOperationException"></exception>
+    /// <exception cref="InvalidOperationException">If the accounts could not be found</exception>
     public async Task WithdrawAsync(Guid accountId, decimal amount, string? note = null)
     {
         await EnsureLoadedAsync();
@@ -129,10 +118,8 @@ public class AccountService : IAccountService
     }
     
     /// <summary>
-    ///  Gets transactions for a specific bank account
+    ///  Gets transactions for a specific bank account in history page
     /// </summary>
-    /// <param name="accountId"></param>
-    /// <returns></returns>
     /// <exception cref="InvalidOperationException"></exception>
     public async Task<IReadOnlyList<Transaction>> GetTransactionsAsync(Guid accountId)
     {
@@ -221,7 +208,10 @@ public class AccountService : IAccountService
     {
         return _accounts.Cast<IBankAccount>().ToList();
     }
-
+    
+    /// <summary>
+    ///  Saves accounts to storage
+    /// </summary>
     public async Task SaveAccountsAsync()
     {
         await _storage.SetItemAsync(StorageKey, _accounts);
@@ -258,7 +248,7 @@ public class AccountService : IAccountService
         account.InterestRate ??= 0m;
         account.InterestRate = Math.Max(0m, account.InterestRate.Value + delta);
 
-        // Räkna om saldot utifrån InitialBalance och ny ränta
+        // counts new balance based on initial balance and new interest rate
         account.Balance = account.InitialBalance * (1 + (account.InterestRate ?? 0));
 
         await SaveAsync();

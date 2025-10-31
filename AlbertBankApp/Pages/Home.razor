@@ -61,7 +61,7 @@ else
 {
     <div style="margin-top:30px; padding:16px; border:1px solid #ccc; border-radius:8px; max-width:400px;">
         <h4>Hantera konto: @selectedAccount.Name</h4>
-        <p>Saldo: <b>@selectedAccount.InitialBalance.ToString("N2") @selectedAccount.Currency</b></p>
+        <p>Saldo: <b>@selectedAccount.Balance.ToString("N2") @selectedAccount.Currency</b></p>
         <div style="margin-bottom:10px;">
             <label>Belopp:</label>
             <input type="number" @bind="amount" style="margin-left:10px; width:120px;" />

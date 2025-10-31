@@ -18,7 +18,7 @@ public interface IAccountService
     Task DeleteTransactionAsync(Guid txId);
     List<IBankAccount> GetAccounts();
     Task SaveAccountsAsync();
-    Task<bool> ValidatePinAsync(string pin); // pinkod
+    Task<bool> ValidatePinAsync(string pin);
     Task ChangeInterestAsync(Guid accountId, decimal @decimal);
     Task ApplyInterestAsync(Guid accountId);
 }

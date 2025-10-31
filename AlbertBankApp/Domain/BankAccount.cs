@@ -7,7 +7,7 @@ using AlbertBankApp.Interfaces;
 namespace AlbertBankApp.Domain;
 
 /// <summary>
-/// Represents a bank account with balance management, transaction history, and support for deposits, withdrawals, and transfers.
+/// Represents a bank account with balance management, transaction history, and support for deposits, withdrawals, and transfers
 /// </summary>
 public class BankAccount : IBankAccount
 {
@@ -110,6 +110,22 @@ public class BankAccount : IBankAccount
         LastUpdated = now;
     }
 
+    public void Deposit(decimal amount, Guid fromAccountId, string fromAccountName, string description)
+    {
+        amount = amount;
+        fromAccountId = fromAccountId;
+        fromAccountName = fromAccountName;
+        description = description;
+    }
+
+    public void Withdraw(decimal amount, Guid toAccountId, string toAccountName, string description)
+    {
+        amount = amount;
+        toAccountId = toAccountId;
+        toAccountName = toAccountName;
+        description = description;
+    }
+
     /// <summary>
     /// Transfers a specified amount from this account to a target account, with an optional note.
     /// </summary>
@@ -154,31 +170,7 @@ public class BankAccount : IBankAccount
         LastUpdated = now;
         target.LastUpdated = now;
     }
-
-    /// <summary>
-    /// Deposits a specified amount into this account from another account, with an optional description.
-    /// </summary>
-    /// <param name="amount">The amount to deposit.</param>
-    /// <param name="fromAccountId">The ID of the account from which the funds are coming.</param>
-    /// <param name="fromAccountName">The name of the account from which the funds are coming.</param>
-    /// <param name="description">Optional description or note for the deposit.</param>
-    void IBankAccount.Deposit(decimal amount, Guid fromAccountId, string fromAccountName, string description)
-        => Deposit(amount, string.IsNullOrWhiteSpace(description)
-            ? $"Insättning från {fromAccountName}"
-            : description);
     
-    /// <summary>
-    /// Withdraws a specified amount from this account to another account, with an optional description.
-    /// </summary>
-    /// <param name="amount">The amount to withdraw.</param>
-    /// <param name="toAccountId">The ID of the account to which the funds are sent.</param>
-    /// <param name="toAccountName">The name of the account to which the funds are sent.</param>
-    /// <param name="description">Optional description or note for the withdrawal.</param>
-    void IBankAccount.Withdraw(decimal amount, Guid toAccountId, string toAccountName, string description)
-        => Withdraw(amount, string.IsNullOrWhiteSpace(description)
-            ? $"Uttag till {toAccountName}"
-            : description);
-
     /// <summary>
     /// Removes a transaction from the account by its unique identifier and updates the balance.
     /// </summary>
@@ -241,10 +233,11 @@ public class BankAccount : IBankAccount
         if (initialBalance > 0)
             Deposit(initialBalance, "Initial balance");
     }
+    
     /// <summary>
     /// InterestRate method for Sparkonto account
     /// </summary>
-public void ApplyInterest()
+    public void ApplyInterest()
     {
         if (AccountType == AccountType.Sparkonto && InterestRate.HasValue && InterestRate != 0)
         {
@@ -254,7 +247,6 @@ public void ApplyInterest()
             if (newBalance < InitialBalance)
             {
                 Balance = InitialBalance;
-                // Optionally, add a transaction for the adjustment if you want it in history
             }
             else if (interest > 0)
             {

@@ -16,6 +16,10 @@ public class LocalStorageService : ILocalStorageService
     {
         _jsRuntime = jsRuntime;
     }
+    
+    /// <summary>
+    ///  Retrieves an item from local storage
+    /// </summary>
     public async Task<T?> GetItemAsync<T>(string key)
     {
         var json = await _jsRuntime.InvokeAsync<string>("localStorage.getItem", key);

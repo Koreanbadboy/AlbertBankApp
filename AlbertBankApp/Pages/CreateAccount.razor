@@ -132,7 +132,6 @@ else
     <p>Inga konton skapade än.</p>
 }
 
-
 @code {
     
     /// <summary>
@@ -144,7 +143,10 @@ else
 
     private string? _successMessage;
     private IReadOnlyList<BankAccount> _accounts = Array.Empty<BankAccount>();
-
+    
+    /// <summary>
+    ///  Initializes the component and loads existing accounts
+    /// </summary>
     protected override async Task OnInitializedAsync()
     {
         _editContext = new EditContext(_model);
@@ -210,7 +212,8 @@ else
             initialBalance: _model.InitialBalance,
             interestRate: _model.InterestRate
         );
-
+        
+        // Show success message and reset form
         _successMessage = $"Kontot '{_model.Name}' har skapats.";
         _model = new CreateAccountModel();
         _editContext = new EditContext(_model);
