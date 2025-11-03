@@ -2,6 +2,7 @@ using AlbertBankApp.Interfaces;
 using System.Text.Json;
 using Microsoft.JSInterop;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 
 namespace AlbertBankApp.Services;
 
@@ -11,10 +12,12 @@ namespace AlbertBankApp.Services;
 public class LocalStorageService : ILocalStorageService
 {
     private readonly IJSRuntime _jsRuntime;
+    private readonly ILogger<LocalStorageService> _logger;
     
     public LocalStorageService(IJSRuntime jsRuntime)
     {
         _jsRuntime = jsRuntime;
+        _logger = _logger;
     }
     
     /// <summary>
@@ -25,9 +28,11 @@ public class LocalStorageService : ILocalStorageService
         var json = await _jsRuntime.InvokeAsync<string>("localStorage.getItem", key);
         if (string.IsNullOrEmpty(json))
         {
+            _logger.LogDebug("Ingen data hittades för {key}", key);
             return default;
         }
         
+        _logger.LogDebug("Hämtade datan från localStorage {key}", key);
         return JsonSerializer.Deserialize<T>(json);
     }
     
@@ -41,6 +46,7 @@ public class LocalStorageService : ILocalStorageService
     {
         var json = JsonSerializer.Serialize(value);
         await _jsRuntime.InvokeVoidAsync("localStorage.setItem", key, json);
+        _logger.LogDebug("Saved localStorage {key}", key);
     }
     
     /// <summary>
@@ -50,5 +56,6 @@ public class LocalStorageService : ILocalStorageService
     public async Task RemoveItemAsync(string key)
     {
         await _jsRuntime.InvokeVoidAsync("localStorage.removeItem", key);
+        _logger.LogDebug("Removed localStorage {key}", key);
     }
 }

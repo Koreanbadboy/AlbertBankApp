@@ -2,6 +2,7 @@
 @layout NoNavLayout
 @inject AlbertBankApp.Interfaces.IAccountService AccountService
 @inject NavigationManager Navigation
+@inject ILogger<Index> Logger
 
 <!-- Welcome text and input bar for password -->
 <div style="min-height: 100vh; display: flex; flex-direction: column; justify-content: flex-start; align-items: center; padding-top: 8vh;">
@@ -77,10 +78,12 @@
         var ok = await AccountService.ValidatePinAsync(userCode);
         if (ok)
         {
+            Logger.LogInformation("Inloggning lyckades");
             Navigation.NavigateTo("/home", forceLoad: false, replace: true);
         }
         else
         {
+            Logger.LogWarning("Felaktig kod vid inloggning");
             message = "Fel kod. Försök igen.";
             userCode = string.Empty;
         }

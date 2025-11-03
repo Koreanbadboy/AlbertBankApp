@@ -1,5 +1,6 @@
 using AlbertBankApp.Domain;
 using AlbertBankApp.Interfaces;
+using Microsoft.Extensions.Logging;
 
 namespace AlbertBankApp.Services;
 
@@ -8,14 +9,16 @@ namespace AlbertBankApp.Services;
 /// </summary>
 public class AccountService : IAccountService
 {
+    private readonly ILogger<AccountService> _logger; // ilogger
     private const string StorageKey = "BankAccounts";
     private readonly ILocalStorageService _storage;
     private List<BankAccount> _accounts = new();
     private bool _loaded;
 
-    public AccountService(ILocalStorageService storage)
+    public AccountService(ILocalStorageService storage,  ILogger<AccountService> logger)
     {
         _storage = storage;
+        _logger = logger;
     }
 
     /// <summary>
@@ -67,6 +70,7 @@ public class AccountService : IAccountService
             accountType == AccountType.Sparkonto ? (interestRate ?? 0) : null
         );
         _accounts.Add(newAccount);
+        _logger.LogInformation("Skapade nytt konto: {@Account}", newAccount);
         await SaveAsync();
         return newAccount;
     }
@@ -88,6 +92,7 @@ public class AccountService : IAccountService
             accountType == AccountType.Sparkonto ? (interestRate ?? 0) : null
         );
         _accounts.Add(newAccount);
+        _logger.LogInformation("Skapade nytt konto: {@Account}", newAccount);
         await SaveAsync();
         return newAccount;
     }
@@ -101,6 +106,7 @@ public class AccountService : IAccountService
         var account = _accounts.FirstOrDefault(a => a.Id == accountId)
                       ?? throw new InvalidOperationException("Kontot hittades inte");
         account.Deposit(amount, note);
+        _logger.LogInformation("Skapade nytt konto: {@Account}", account);
         await SaveAsync();
     }
 
@@ -113,8 +119,16 @@ public class AccountService : IAccountService
         await EnsureLoadedAsync();
         var account = _accounts.FirstOrDefault(a => a.Id == accountId)
                       ?? throw new InvalidOperationException("Kontot hittades inte");
+        if (amount <= 0)
+        {
+            _logger.LogWarning("Ogiltigt uttagsbelopp : {@Amount}", amount);
+        }
+        
         account.Withdraw(amount, note);
         await SaveAsync();
+        
+        _logger.LogInformation("Uttag på {Amount} SEK från konto {AccountId}. Nytt saldo: {Balance} SEK",
+            amount, account.Id, account.Balance);
     }
 
     /// <summary>
@@ -139,6 +153,7 @@ public class AccountService : IAccountService
         if (account != null)
         {
             _accounts.Remove(account);
+            _logger.LogInformation("Tog borg konto: {@AccountId}({AccountName})", account.Id, account.Name);
             await SaveAsync();
         }
     }
@@ -255,5 +270,7 @@ public class AccountService : IAccountService
             account.InterestRate = 1m;
 
         await SaveAsync();
+        
+        _logger.LogInformation("Justerade saldo och ränta med 1% för konto {AccoutName}", account.Name);
     }
 }

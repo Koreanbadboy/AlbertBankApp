@@ -197,7 +197,6 @@ public class BankAccount : IBankAccount
         LastUpdated = DateTime.UtcNow;
     }
     
-    
     /// <summary>
     /// Initializes a new instance of the "BankAccount" class with the specified parameters.
     /// </summary>

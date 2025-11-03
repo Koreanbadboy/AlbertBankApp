@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using AlbertBankApp;
 using AlbertBankApp.Interfaces;
 using AlbertBankApp.Services;
+using Microsoft.Extensions.Logging;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 
