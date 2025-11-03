@@ -20,4 +20,6 @@ public interface IAccountService
     Task SaveAccountsAsync();
     Task<bool> ValidatePinAsync(string pin);
     Task AdjustBalanceByPercentAsync(Guid accountId, bool increase);
+    Task<string> ExportJsonAsync();
+    Task<List<string>?> ImportJsonAsync(string json, bool replace);
 }

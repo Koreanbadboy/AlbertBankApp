@@ -1,6 +1,8 @@
 using AlbertBankApp.Domain;
 using AlbertBankApp.Interfaces;
 using Microsoft.Extensions.Logging;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace AlbertBankApp.Services;
 
@@ -272,5 +274,75 @@ public class AccountService : IAccountService
         await SaveAsync();
         
         _logger.LogInformation("Justerade saldo och ränta med 1% för konto {AccoutName}", account.Name);
+    }
+    
+    /// <summary>
+    /// JSON options for export/import
+    /// </summary>
+    private static readonly JsonSerializerOptions _jsonOptions = new JsonSerializerOptions
+    {
+        WriteIndented = true,
+        PropertyNameCaseInsensitive = true,
+        Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) }
+    };
+    
+    /// <summary>
+    /// JSON Export
+    /// </summary>
+    /// <returns></returns>
+    public async Task<string> ExportJsonAsync()
+    {
+        await EnsureLoadedAsync();
+        return JsonSerializer.Serialize(_accounts, _jsonOptions);
+    }
+
+    /// <summary>
+    /// JSON Import
+    /// </summary>
+    /// <param name="json"></param>
+    /// <param name="replaceExisting"></param>
+    /// <returns></returns>
+    public async Task<List<string>> ImportJsonAsync(string json, bool replaceExisting = false)
+    {
+        var errors = new List<string>();
+        if (string.IsNullOrWhiteSpace(json))
+        {
+            errors.Add("Tom JSON.");
+            return errors;
+        }
+
+        List<BankAccount>? incoming;
+        try
+        {
+            incoming = JsonSerializer.Deserialize<List<BankAccount>>(json, _jsonOptions);
+        }
+        catch
+        {
+            errors.Add("Ogiltig JSON.");
+            return errors;
+        }
+
+        if (incoming is null || incoming.Count == 0)
+        {
+            errors.Add("Ingen data.");
+            return errors;
+        }
+
+        await EnsureLoadedAsync();
+
+        if (replaceExisting)
+        {
+            _accounts = incoming.ToList();
+        }
+        else
+        {
+            var existing = _accounts.Select(a => a.Id).ToHashSet();
+            foreach (var a in incoming)
+                if (!existing.Contains(a.Id))
+                    _accounts.Add(a);
+        }
+
+        await SaveAsync();
+        return errors;
     }
 }

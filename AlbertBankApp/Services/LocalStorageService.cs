@@ -14,10 +14,10 @@ public class LocalStorageService : ILocalStorageService
     private readonly IJSRuntime _jsRuntime;
     private readonly ILogger<LocalStorageService> _logger;
     
-    public LocalStorageService(IJSRuntime jsRuntime)
+    public LocalStorageService(IJSRuntime jsRuntime, ILogger<LocalStorageService> logger)
     {
-        _jsRuntime = jsRuntime;
-        _logger = _logger;
+        _jsRuntime = jsRuntime ?? throw new ArgumentNullException(nameof(jsRuntime));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
     
     /// <summary>
