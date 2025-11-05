@@ -2,9 +2,9 @@
 - PINKOD - 1234
 
 ## Kom igång
-git clone https://github.com/Koreanbadboy/AlbertBankApp.git
-cd AlbertBankApp
-dotnet run
+- git clone https://github.com/Koreanbadboy/AlbertBankApp.git
+- cd AlbertBankApp
+- dotnet run
 
 ## Skapa konto
 - Skapa nya konton av typen Privatkonto eller Sparkonto
