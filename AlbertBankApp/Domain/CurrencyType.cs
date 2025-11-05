@@ -4,6 +4,5 @@ namespace AlbertBankApp.Domain;
 /// </summary>
 public enum CurrencyType
 {
-    None,
     SEK,
 }
