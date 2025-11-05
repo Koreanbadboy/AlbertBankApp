@@ -41,20 +41,14 @@ dotnet run
 
 ## Tekniska VG-val och motiveringar
 
-------------------------------------------------------------
-
 ### Pinkod (inloggning):
 Jag valde att använda en enkel pinkodslåsning som en visuell spärr i gränssnittet.  
 Syftet är att simulera en inloggningssituation utan att hantera riktiga användare eller autentisering.  
 Det ger en tydlig startpunkt innan användaren får tillgång till sina konton och kan enkelt byggas ut till en riktig inloggning i framtiden.
 
-------------------------------------------------------------
-
 ### Ränta på sparkonto:
 Jag valde att lägga till en justerbar ränta på sparkonton för att ge användaren möjlighet att simulera hur saldot växer över tid.  
 Funktionen gör applikationen mer realistisk och visar hur finansiell logik kan tillämpas på ett tydligt och användarvänligt sätt.
-
-------------------------------------------------------------
 
 ### JSON export/import med validering:
 Jag valde att använda JSON för att exportera och importera kontodata.  
