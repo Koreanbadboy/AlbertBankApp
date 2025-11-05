@@ -1,5 +1,8 @@
 namespace AlbertBankApp.Domain;
 
+/// <summary>
+/// Specifies the type of transaction: deposit, withdrawal, or transfer.
+/// </summary>
 public enum TransactionType
 {
     Deposit,
@@ -7,6 +10,9 @@ public enum TransactionType
     Transfer,
 }
 
+/// <summary>
+/// Represents a financial transaction within the banking application.
+/// </summary>
 public class Transaction
 {
     public Guid Id { get; set; } = Guid.NewGuid();
@@ -19,7 +25,6 @@ public class Transaction
     public TransactionType TransactionType { get; set; }
     public string FromAccountName { get; set; } = string.Empty;
     public string ToAccountName { get; set; } = string.Empty;
-    public string Notes { get; set; } = string.Empty;
     public string Note { get; set; } = string.Empty;
-    public object Date { get; }
+    public DateTime LastUpdated { get; set; } = DateTime.UtcNow;
 }

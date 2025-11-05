@@ -1,0 +1,91 @@
+@page "/"
+@layout NoNavLayout
+@inject AlbertBankApp.Interfaces.IAccountService AccountService
+@inject NavigationManager Navigation
+@inject ILogger<Index> Logger
+
+<!-- Welcome text and input bar for password -->
+<div style="min-height: 100vh; display: flex; flex-direction: column; justify-content: flex-start; align-items: center; padding-top: 8vh;">
+    <div style="width: 100%; max-width: 200px;">
+        <h3 style="text-align: center;">Välkommen till MinBankApp!</h3>
+        <br />
+        <div class="form-group" id="codeInputContainer" style="max-width: 200px; margin: 0 auto;">
+            <label for="inputCode" class="form-label">Ange kod för att logga in:</label>
+            <InputText id="inputCode"
+                       class="form-control"
+                       @bind-Value="userCode"
+                       type="password"
+                       inputmode="numeric"
+                       pattern="[0-9]*"
+                       @oninput="OnlyDigits" />
+        </div>
+        
+        <!-- login button will show if digits are typed -->
+        @if (!string.IsNullOrEmpty(userCode) && IsDigitsOnly(userCode))
+        {
+            <button class="btn btn-primary mt-2 w-100" @onclick="HandleLogin">Logga in</button>
+        }
+
+        @if (!string.IsNullOrEmpty(message))
+        {
+            <div class="text-danger mt-2" style="text-align:center;">@message</div>
+        }
+    </div>
+</div>
+
+@code {
+    /// <summary>
+    /// User input code for login
+    /// </summary>
+    private string userCode = string.Empty;
+    private string message = string.Empty;
+    
+    /// <summary>
+    ///  Allows only digit characters in the input
+    /// </summary>
+    private void OnlyDigits(ChangeEventArgs e)
+    {
+        var value = e.Value?.ToString() ?? string.Empty;
+        var sb = new System.Text.StringBuilder(value.Length);
+        foreach (var ch in value)
+        {
+            if (char.IsDigit(ch)) sb.Append(ch);
+        }
+
+        userCode = sb.ToString();
+    }
+    
+    /// <summary>
+    ///  Checks if a string contains only digit characters
+    /// </summary>
+    private bool IsDigitsOnly(string str)
+    {
+        if (string.IsNullOrEmpty(str)) return false;
+        foreach (var ch in str)
+        {
+            if (!char.IsDigit(ch)) return false;
+        }
+
+        return true;
+    }
+    
+    /// <summary>
+    /// Handles the login process
+    /// </summary>
+    private async Task HandleLogin()
+    {
+        message = string.Empty;
+        var ok = await AccountService.ValidatePinAsync(userCode);
+        if (ok)
+        {
+            Logger.LogInformation("Inloggning lyckades");
+            Navigation.NavigateTo("/home", forceLoad: false, replace: true);
+        }
+        else
+        {
+            Logger.LogWarning("Felaktig kod vid inloggning");
+            message = "Fel kod. Försök igen.";
+            userCode = string.Empty;
+        }
+    }
+}

@@ -1,11 +1,7 @@
 @page "/NewTransaction"
-@using System.ComponentModel.DataAnnotations
-@inject NavigationManager NavigationManager
-@using AlbertBankApp.Domain
-@using AlbertBankApp.Interfaces
 @inject IAccountService AccountService
-@inject ILocalStorageService LocalStorageService
 
+<!-- Linq command for filter of date-->
 <h3>Överföring</h3>
 
 @if (_accounts == null || _accounts.Count < 2)
@@ -15,11 +11,9 @@
 else
 {
     <EditForm Model="_transferModel" OnValidSubmit="HandleTransfer">
-        <DataAnnotationsValidator />
-        <ValidationSummary />
 
-        <!-- från konto dropdown -->
-        <div class="mb-3">
+        <!-- From Account dropdown -->
+        <div class="mb-3" style="max-width: 400px;">
             <label for="fromAccount" class="form-label">Från konto</label>
             <InputSelect id="fromAccount" class="form-select" @bind-Value="_transferModel.FromAccountId" @bind-Value:after="FromAccountChanged">
                 <option value="@Guid.Empty">Välj konto</option>
@@ -30,8 +24,8 @@ else
             </InputSelect>
         </div>
         
-        <!-- till konto dropdown -->
-        <div class="mb-3">
+        <!-- To Account dropdown -->
+        <div class="mb-3" style="max-width: 400px;">
             <label for="toAccount" class="form-label">Till konto</label>
             <InputSelect id="toAccount" class="form-select" @bind-Value="_transferModel.ToAccountId">
                 <option value="@Guid.Empty">Välj konto</option>
@@ -41,12 +35,14 @@ else
                 }
             </InputSelect>
         </div>
-
-        <div class="mb-3">
+        
+        <!-- Amount input -->
+        <div class="mb-3" style="max-width: 400px;">
             <label for="amount" class="form-label">Belopp</label>
             <InputNumber id="amount" class="form-control" @bind-Value="_transferModel.Amount" />
         </div>
-
+        
+        <!-- Error message display -->
         @if (!string.IsNullOrEmpty(_errorMessage))
         {
             <div class="alert alert-danger">@_errorMessage</div>
@@ -55,21 +51,22 @@ else
         <button type="submit" class="btn btn-primary">Överför</button>
         <br/>
         
-        <!-- Transaktionshistorik -->
-        
+        <!-- Transaction history -->
         @if (_history.Any())
         {
             <h4 class="mt-4">Transaktionshistorik</h4>
-            <table class="table">
+            <table class="table" style="max-width: 900px;">
                 <thead>
-                    <tr>
-                        <th>Datum</th>
-                        <th>Från konto</th>
-                        <th>Till konto</th>
-                        <th>Belopp</th>
-                        <th></th> <!-- tom delete kolumn -->
-                    </tr>
+                <tr>
+                    <th>Datum</th>
+                    <th>Från konto</th>
+                    <th>Till konto</th>
+                    <th>Belopp</th>
+                    <th></th> <!-- Column for delete button -->
+                </tr>
                 </thead>
+                
+                <!-- Transaction rows -->
                 <tbody>
                     @foreach (var transaction in _history.OrderByDescending(t => t.TimeStamp))
                     {
@@ -78,33 +75,44 @@ else
                             <td>@transaction.FromAccountName</td>
                             <td>@transaction.ToAccountName</td>
                             <td>@transaction.Amount.ToString("C")</td>
+                            
+                            <!-- Delete button -->
                             <td>
-                                <button class="btn btn-danger btn-sm" @onclick="() => DeleteTranscation(transaction)">Ta bort</button> <!-- Delete button -->
+                                <button class="btn btn-danger btn-sm" @onclick="() => DeleteTranscation(transaction)">Ta bort</button>
                             </td>
                         </tr>
                     }
                 </tbody>
             </table>
         }
-        
     </EditForm>
 }
 
 @code {
+    
+    /// <summary>
+    /// List of bank accounts for the user
+    /// </summary>
     private List<BankAccount> _accounts = new();
     private List<BankAccount> _toAccounts = new();
     private TransferModel _transferModel = new();
     private string? _errorMessage;
     private List<Transaction> _history = new();
 
+    /// <summary>
+    /// Loads accounts and transaction history on initialization
+    /// </summary>
     protected override async Task OnInitializedAsync()
     {
         _accounts = (await AccountService.GetAccountsAsync()).ToList();
         _toAccounts = _accounts;
-        _history = await LocalStorageService.GetItemAsync<List<Transaction>>("TransactionHistory") ?? new List<Transaction>();
+        _history = _accounts.SelectMany(a => a.Transactions).OrderByDescending(t => t.TimeStamp).ToList();
     }
-
-    private void FromAccountChanged()
+    
+    /// <summary>
+    /// Updates the ToAccount list when FromAccount changes
+    /// </summary>
+    private void FromAccountChanged()   
     {
         _toAccounts = _accounts.Where(a => a.Id != _transferModel.FromAccountId).ToList();
         if (_toAccounts.All(a => a.Id != _transferModel.ToAccountId))
@@ -113,37 +121,31 @@ else
         }
         StateHasChanged();
     }
-
+    
+    /// <summary>
+    /// Handles the transfer submission
+    /// </summary>
     private async Task HandleTransfer()
     {
         _errorMessage = null;
+
         try
         {
             await AccountService.TransferAsync(
                 _transferModel.FromAccountId,
                 _transferModel.ToAccountId,
                 _transferModel.Amount);
-            
-            var fromAccount = _accounts.First(a => a.Id == _transferModel.FromAccountId);
-            var toAccount = _accounts.First(a => a.Id == _transferModel.ToAccountId);
 
-            var tx = new Transaction
-            {
-                TimeStamp = DateTime.UtcNow,
-                Amount = _transferModel.Amount,
-                FromAccountId = fromAccount.Id,
-                ToAccountId = toAccount.Id,
-                FromAccountName = fromAccount.Name,
-                ToAccountName = toAccount.Name,
-                TransactionType = TransactionType.Transfer
-            };
-
-            _history.Add(tx);
-            
-            await LocalStorageService.SetItemAsync("TransactionHistory", _history);
-            
+            // update accounts and history after transfer
             _accounts = (await AccountService.GetAccountsAsync()).ToList();
             _toAccounts = _accounts.Where(a => a.Id != _transferModel.FromAccountId).ToList();
+            _history = _accounts.SelectMany(a => a.Transactions)
+                .OrderByDescending(t => t.TimeStamp)
+                .ToList();
+            
+            // reset form
+            _transferModel.Amount = 0;
+            _transferModel.ToAccountId = Guid.Empty;
         }
         catch (Exception ex)
         {
@@ -151,22 +153,23 @@ else
         }
     }
 
-    public class TransferModel
-    {
-        [Required(ErrorMessage = "Välj ett från konto")]
-        public Guid FromAccountId { get; set; }
-
-        [Required(ErrorMessage = "Välj ett till konto")]
-        public Guid ToAccountId { get; set; }
-
-        [Required]
-        [Range(0.01, double.MaxValue, ErrorMessage = "Belopp måste vara större än 0")]
-        public decimal Amount { get; set; }
-    }
-    // Metod för a bort knapp
+    /// <summary>
+    /// Deletes a transaction
+    /// </summary>
     private async Task DeleteTranscation(Transaction transaction)
     {
-        _history.Remove(transaction);
-        await LocalStorageService.SetItemAsync("TransactionHistory", _history);
+        await AccountService.DeleteTransactionAsync(transaction.Id);
+        _accounts = (await AccountService.GetAccountsAsync()).ToList();
+        _history = _accounts.SelectMany(a => a.Transactions).OrderByDescending(t => t.TimeStamp).ToList();
+    }
+    
+    /// <summary>
+    ///  Model for transfer form
+    /// </summary>
+    public class TransferModel
+    {
+        public Guid FromAccountId { get; set; }
+        public Guid ToAccountId { get; set; }
+        public decimal Amount { get; set; }
     }
 }

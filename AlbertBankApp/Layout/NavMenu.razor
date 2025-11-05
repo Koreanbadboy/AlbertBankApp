@@ -1,42 +1,68 @@
-﻿<div class="top-row ps-3 navbar navbar-dark">
+﻿<!-- Menu header -->
+<div class="top-row ps-3 navbar navbar-dark">
     <div class="container-fluid">
-        <a class="navbar-brand" href="">AlbertBankApp</a>
+        <a class="navbar-brand" href="">MinBankApp</a>
         <button title="Navigation menu" class="navbar-toggler" @onclick="ToggleNavMenu">
             <span class="navbar-toggler-icon"></span>
         </button>
     </div>
 </div>
 
+<!-- Home page -->
 <div class="@NavMenuCssClass nav-scrollable" @onclick="ToggleNavMenu">
     <nav class="flex-column">
         <div class="nav-item px-3">
-            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
+            <NavLink class="nav-link" href="home"Match="NavLinkMatch.All">
+                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Start
             </NavLink>
         </div>
+        
+        <!-- create account -->
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="createaccount">
                 <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Skapa konto
             </NavLink>
         </div>
-        <!-- överföring -->
+        
+        <!-- Transaction -->
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="NewTransaction">
                 <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Överföring
             </NavLink>
         </div>
         
+        <!-- History -->
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="History">
+                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Historik
+            </NavLink>
+        </div>
+        
+        <!-- Backup -->
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="backup">
+                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Backup
+            </NavLink>
+        </div>
+        
+        <!-- Logout -->
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="/">
+                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Logga ut
+            </NavLink>
+        </div>
     </nav>
 </div>
 
 @code {
+    
+    /// <summary>
+    /// Whether the navigation menu is collapsed
+    /// </summary>
     private bool collapseNavMenu = true;
-
     private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
-
     private void ToggleNavMenu()
     {
         collapseNavMenu = !collapseNavMenu;
     }
-
 }

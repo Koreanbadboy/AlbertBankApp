@@ -1,7 +1,171 @@
-﻿@page "/"
+﻿@page "/home"
+@inject AlbertBankApp.Interfaces.IAccountService AccountService
 
 <PageTitle>Home</PageTitle>
 
-<h1>Hello, world!</h1>
+<!-- Header of the page -->
+<h1 style="font-weight: bold; font-family: 'Arial', sans-serif;">Välkommen till MinBankApp</h1>
 
-Welcome to your new app.
+<!-- General information -->
+<br/>
+<p>Här kan du skapa bankkonton, göra överföringar och se din transaktionshistorik.</p>
+<p>Använd navigationsmenyn för att komma igång.</p>
+
+<!-- Waiting text or if no accounts are made -->
+@if (accounts == null)
+{
+    <p>Laddar konton...</p>
+}
+else if (!accounts.Any())
+{
+    <p>Du har inga konton ännu.</p>
+}
+else
+{
+    
+    <!-- Display created account(s) -->
+    <h3>Dina konton</h3>
+    <table style="max-width: 800px; border-collapse: collapse; font-family: Arial, sans-serif; width:100%;">
+        <thead style="background-color: #f2f2f2;">
+            <tr>
+                <th style="padding: 8px; border: 1px solid #ddd;">Namn</th>
+                <th style="padding: 8px; border: 1px solid #ddd;">Typ</th>
+                <th style="padding: 8px; border: 1px solid #ddd;">Belopp</th>
+                <th style="padding: 8px; border: 1px solid #ddd;">Valuta</th>
+                <th style="padding: 8px; border: 1px solid #ddd;">Ränta</th>
+                <th style="padding: 8px; border: 1px solid #ddd;">Insättning/Uttag</th>
+            </tr>
+        </thead>
+        <tbody>
+        @foreach (var account in accounts)
+        {
+            <tr style="@(selectedAccount?.Id == account.Id ? "background-color:#e0f7fa;" : null)">
+                <td style="padding: 8px; border: 1px solid #ddd;">@account.Name</td>
+                <td style="padding: 8px; border: 1px solid #ddd;">@account.AccountType</td>
+                <td style="padding: 8px; border: 1px solid #ddd;">@account.Balance.ToString("N2")</td>
+                <td style="padding: 8px; border: 1px solid #ddd;">@account.Currency</td>
+                <td style="padding: 8px; border: 1px solid #ddd;">
+                    @(account.InterestRate.HasValue ? (account.InterestRate.Value * 100).ToString("N2") + " %" : "-")
+                </td>
+                <td style="padding: 8px; border: 1px solid #ddd;">
+                    <button @onclick="() => SelectAccount(account)" style="padding:4px 10px;">Välj</button>
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+}
+
+<!-- Managing account(s) for withdraw and deposit -->
+@if (selectedAccount != null)
+{
+    <div style="margin-top:30px; padding:16px; border:1px solid #ccc; border-radius:8px; max-width:400px;">
+        <h4>Hantera konto: @selectedAccount.Name</h4>
+        <p>Saldo: <b>@selectedAccount.Balance.ToString("N2") @selectedAccount.Currency</b></p>
+        <div style="margin-bottom:10px;">
+            <label>Belopp:</label>
+            <input type="number" @bind="amount" style="margin-left:10px; width:120px;" />
+        </div>
+        <div style="margin-bottom:10px;">
+            <label>Notering (valfritt):</label>
+            <input type="text" @bind="note" style="margin-left:10px; width:200px;" />
+        </div>
+        <button @onclick="Deposit" style="margin-right:10px;">Insättning</button>
+        <button @onclick="Withdraw">Uttag</button>
+        @if (!string.IsNullOrEmpty(message))
+        {
+            <div style="margin-top:10px; color:@(messageSuccess ? "green" : "red");">@message</div>
+        }
+    </div>
+}
+
+@code {
+    /// <summary>
+    /// List of bank accounts for the user
+    /// </summary>
+    private IReadOnlyList<AlbertBankApp.Domain.BankAccount>? accounts;
+    private AlbertBankApp.Domain.BankAccount? selectedAccount;
+    private decimal amount;
+    private string? note;
+    private string? message;
+    private bool messageSuccess;
+
+    /// <summary>
+    /// OnInitializedAsync is called when the component is initialized
+    /// </summary>
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAccounts();
+    }
+    
+    /// <summary>
+    /// Loads the user's bank accounts
+    /// </summary>
+    private async Task LoadAccounts()
+    {
+        accounts = await AccountService.GetAccountsAsync();
+        if (selectedAccount != null && accounts != null)
+            selectedAccount = accounts.FirstOrDefault(a => a.Id == selectedAccount.Id);
+    }
+    
+    /// <summary>
+    /// Selects a bank account for deposit/withdrawal
+    /// </summary>
+    private void SelectAccount(AlbertBankApp.Domain.BankAccount account)
+    {
+        selectedAccount = account;
+        amount = 0;
+        note = string.Empty;
+        message = null;
+    }
+    
+    /// <summary>
+    /// Deposits an amount into the selected account
+    /// </summary>
+    private async Task Deposit()
+    {
+        if (selectedAccount == null || amount <= 0)
+        {
+            message = "Ange ett giltigt belopp.";
+            messageSuccess = false;
+            return;
+        }
+        try
+        {
+            await AccountService.DepositAsync(selectedAccount.Id, amount, note);
+            message = $"Insättning av {amount:N2} lyckades.";
+            messageSuccess = true;
+            await LoadAccounts();
+        }
+        catch (Exception ex)
+        {
+            message = ex.Message;
+            messageSuccess = false;
+        }
+    }
+    
+    /// <summary>
+    /// Withdraws an amount from the selected account
+    /// </summary>
+    private async Task Withdraw()
+    {
+        if (selectedAccount == null || amount <= 0)
+        {
+            message = "Ange ett giltigt belopp.";
+            messageSuccess = false;
+            return;
+        }
+        try
+        {
+            await AccountService.WithdrawAsync(selectedAccount.Id, amount, note);
+            message = $"Uttag av {amount:N2} lyckades.";
+            messageSuccess = true;
+            await LoadAccounts();
+        }
+        catch (Exception ex)
+        {
+            message = ex.Message;
+            messageSuccess = false;
+        }
+    }
+}
