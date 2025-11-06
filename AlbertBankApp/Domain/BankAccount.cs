@@ -5,8 +5,10 @@ using System.Text.Json.Serialization;
 
 namespace AlbertBankApp.Domain;
 
-public class BankAccount
+public class BankAccount : IBankAccount
 {
+    private List<Transaction> _transactions = new List<Transaction>();
+
     public Guid Id { get; set; }
     public string Name { get; set; } = string.Empty;
     public AccountType AccountType { get; set; }
@@ -15,14 +17,14 @@ public class BankAccount
     public decimal? InterestRate { get; set; }
     public decimal InitialBalance { get; set; }
     public DateTime LastUpdated { get; set; }
-    public List<Transaction> Transactions { get; set; } = new List<Transaction>();
-
-    // Parameterless constructor for JSON deserialization
-    public BankAccount()
+    
+    public IReadOnlyList<Transaction> Transactions
     {
+        get => _transactions;
+        set => _transactions = value != null ? new List<Transaction>(value) : new List<Transaction>();
     }
 
-    // Constructor for runtime creation
+    [JsonConstructor]
     public BankAccount(
         Guid id,
         string name,
@@ -42,19 +44,21 @@ public class BankAccount
         InitialBalance = initialBalance;
         LastUpdated = lastUpdated;
         InterestRate = interestRate;
-        Transactions = transactions != null ? new List<Transaction>(transactions) : new List<Transaction>();
+        _transactions = transactions != null ? new List<Transaction>(transactions) : new List<Transaction>();
     }
     
-
-    public void Deposit(decimal amount, string? note = null)
+    public void Deposit(decimal amount, Guid transactionId, string note)
     {
         if (amount <= 0) throw new ArgumentOutOfRangeException(nameof(amount));
+        if (transactionId == Guid.Empty) transactionId = Guid.NewGuid();
+
         var now = DateTime.UtcNow;
         var before = Balance;
         Balance += amount;
-        Transactions.Add(new Transaction
+
+        var tx = new Transaction
         {
-            Id = Guid.NewGuid(),
+            Id = transactionId,
             TimeStamp = now,
             Amount = amount,
             ToAccountId = Id,
@@ -64,20 +68,25 @@ public class BankAccount
             BalanceAfter = Balance,
             ToAccountName = Name,
             LastUpdated = now
-        });
+        };
+
+        _transactions.Add(tx);
         LastUpdated = now;
     }
 
-    public void Withdraw(decimal amount, string? note = null)
+    public void Withdraw(decimal amount, Guid transactionId, string note)
     {
         if (amount <= 0) throw new ArgumentOutOfRangeException(nameof(amount));
         if (amount > Balance) throw new InvalidOperationException("Insufficient funds");
+        if (transactionId == Guid.Empty) transactionId = Guid.NewGuid();
+
         var now = DateTime.UtcNow;
         var before = Balance;
         Balance -= amount;
-        Transactions.Add(new Transaction
+
+        var tx = new Transaction
         {
-            Id = Guid.NewGuid(),
+            Id = transactionId,
             TimeStamp = now,
             Amount = amount,
             FromAccountId = Id,
@@ -87,9 +96,15 @@ public class BankAccount
             BalanceAfter = Balance,
             FromAccountName = Name,
             LastUpdated = now
-        });
+        };
+
+        _transactions.Add(tx);
         LastUpdated = now;
     }
+    public void Deposit(decimal amount, string? note = null) => Deposit(amount, Guid.NewGuid(), note ?? "Deposit");
+    public void Withdraw(decimal amount, string? note = null) => Withdraw(amount, Guid.NewGuid(), note ?? "Withdrawal");
+    
+    internal void AddInternalTransaction(Transaction tx) => _transactions.Add(tx);
 
     public void TransferTo(BankAccount target, decimal amount)
     {
@@ -119,8 +134,8 @@ public class BankAccount
             LastUpdated = now
         };
 
-        Transactions.Add(tx);
-        target.Transactions.Add(tx);
+        _transactions.Add(tx);
+        target.AddInternalTransaction(tx);
 
         LastUpdated = now;
         target.LastUpdated = now;
@@ -128,13 +143,12 @@ public class BankAccount
 
     public void RemoveTransaction(Guid transactionId)
     {
-        var tx = Transactions.FirstOrDefault(t => t.Id == transactionId);
+        var tx = _transactions.FirstOrDefault(t => t.Id == transactionId);
         if (tx == null) return;
-        Transactions.Remove(tx);
-
-        // Recalculate balance from initial balance + transactions
+        _transactions.Remove(tx);
+        
         decimal b = InitialBalance;
-        foreach (var t in Transactions)
+        foreach (var t in _transactions)
         {
             if (t.ToAccountId == Id) b += t.Amount;
             if (t.FromAccountId == Id) b -= t.Amount;
@@ -142,13 +156,12 @@ public class BankAccount
         Balance = b;
         LastUpdated = DateTime.UtcNow;
     }
-    
+
     public void ApplyInterest()
     {
         if (AccountType == AccountType.Sparkonto && InterestRate.HasValue)
         {
             Balance *= (1 + InterestRate.Value);
-            // Optionally add a transaction record here if needed
         }
     }
 }
