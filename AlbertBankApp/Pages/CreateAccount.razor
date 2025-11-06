@@ -99,14 +99,10 @@
                     @(account.InterestRate.HasValue ? (account.InterestRate.Value * 100).ToString("N2") + " %" : "-")
                 </td>
                 
-                <!-- Buttons for adjusting balance by 1% (only for Sparkonto) -->
                 <td>
                     @if (account.AccountType == AccountType.Sparkonto)
-                    {
-                        <button class="btn btn-outline-danger btn-sm"
-                                @onclick="() => AdjustBalanceByPercent(account.Id, false)">-1%</button>
-                        <button class="btn btn-outline-success btn-sm"
-                                @onclick="() => AdjustBalanceByPercent(account.Id, true)">+1%</button>
+                    { 
+                        <button @onclick="ApplyInterest">Lägg på ränta</button>
                     }
                 </td>
                 
@@ -191,8 +187,9 @@ else
             StateHasChanged();
             return;
         }
-        if (_model.Type == AccountType.Sparkonto && _model.InterestRate.HasValue) //ser till att räntan blir rätt procent
+        if (_model.Type == AccountType.Sparkonto && _model.InterestRate.HasValue) // Makes sure interest is correct
         {
+            if (_model.InterestRate.Value > 1m)
             _model.InterestRate /= 100m;
         }
         
@@ -226,13 +223,10 @@ else
         StateHasChanged();
     }
     
-    /// <summary>
-    /// Adjusts the balance of an account by a percentage
-    /// </summary>
-    private async Task AdjustBalanceByPercent(Guid accountId, bool increase)
+    private async Task ApplyInterest()
     {
-        await AccountService.AdjustBalanceByPercentAsync(accountId, increase);
+        await AccountService.ApplyAnnualInterestAsync();
+        // Refresh accounts if needed
         await LoadAccountsAsync();
-        StateHasChanged();
     }
 }

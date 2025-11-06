@@ -22,19 +22,40 @@ public class AccountService : IAccountService
         _storage = storage;
         _logger = logger;
     }
-
-    /// <summary>
-    /// Ensures that accounts are loaded from storage
-    /// </summary>
+    
+   
     private async Task EnsureLoadedAsync()
     {
-        if (!_loaded)
+        if (_loaded) return;
+        var fromStorage = await _storage.GetItemAsync<List<BankAccount>>(StorageKey);
+        _accounts.Clear();
+        if (fromStorage is { Count: > 0 })
         {
-            var stored = await _storage.GetItemAsync<List<BankAccount>>(StorageKey);
-            if (stored != null)
-                _accounts = stored;
-            _loaded = true;
+            _accounts.AddRange(fromStorage);
+            _logger.LogInformation("Loaded {Count} accounts from storage.", fromStorage.Count);
         }
+        else
+        {
+            _logger.LogInformation("No accounts found in storage.");
+        }
+
+        var now = DateTime.UtcNow;
+        var anyApplied = false;
+        foreach (var account in _accounts.Where(a => a.AccountType == AccountType.Sparkonto && a.InterestRate.HasValue && a.InterestRate.Value > 0))
+        {
+            var yearsElapsed = (int)((now - account.LastUpdated).TotalDays / 365);
+            for (int i = 0; i < yearsElapsed; i++)
+            {
+                account.ApplyInterest();
+                anyApplied = true;
+            }
+            account.LastUpdated = now;
+        }
+        if (anyApplied)
+        {
+            await SaveAsync();
+        }
+        _loaded = true;
     }
 
     /// <summary>
@@ -61,44 +82,33 @@ public class AccountService : IAccountService
         decimal initialBalance = 0, decimal? interestRate = null)
     {
         await EnsureLoadedAsync();
-        var transactions = new List<Transaction>();
+
+        decimal? normalizedInterest = null;
+        if (accountType == AccountType.Sparkonto)
+        {
+            normalizedInterest = interestRate.HasValue
+                ? (interestRate.Value > 1m ? interestRate.Value / 100m : interestRate.Value)
+                : 0.01m;
+        }
+
         var newAccount = new BankAccount(
             Guid.NewGuid(),
             name,
             accountType,
             currency,
-            transactions,
             initialBalance,
-            accountType == AccountType.Sparkonto ? (interestRate ?? 0) : null
+            initialBalance,
+            DateTime.UtcNow,
+            new List<Transaction>(),
+            normalizedInterest
         );
+
         _accounts.Add(newAccount);
         _logger.LogInformation("Skapade nytt konto: {@Account}", newAccount);
         await SaveAsync();
         return newAccount;
     }
-
-    /// <summary>
-    ///  Creates a new bank account with initial transactions (needs only if importing with Json)
-    /// </summary>
-    public async Task<BankAccount> CreateAccountAsync(string name, AccountType accountType, CurrencyType currency,
-        IReadOnlyList<Transaction> initialTransactions, decimal? interestRate = null)
-    {
-        await EnsureLoadedAsync();
-        var newAccount = new BankAccount(
-            Guid.NewGuid(),
-            name,
-            accountType,
-            currency,
-            initialTransactions,
-            initialTransactions.Sum(t => t.Amount),
-            accountType == AccountType.Sparkonto ? (interestRate ?? 0) : null
-        );
-        _accounts.Add(newAccount);
-        _logger.LogInformation("Skapade nytt konto: {@Account}", newAccount);
-        await SaveAsync();
-        return newAccount;
-    }
-
+    
     /// <summary>
     ///  Deposits an amount into a bank account
     /// </summary>
@@ -235,48 +245,6 @@ public class AccountService : IAccountService
     }
     
     /// <summary>
-    ///  Adjusts the balance of a savings account by 1% and modifies the interest rate accordingly
-    /// </summary>
-    /// <param name="accountId">Specific account-id</param>
-    /// <param name="increase">Adjust interest rate</param>
-    public async Task AdjustBalanceByPercentAsync(Guid accountId, bool increase)
-    {
-        await EnsureLoadedAsync();
-
-        var account = _accounts.FirstOrDefault(a => a.Id == accountId);
-        if (account == null || account.AccountType != AccountType.Sparkonto)
-            return;
-
-        // Counting 1 percent of the current balance
-        decimal percent = account.Balance * 0.01m;
-
-        // increase or decease the balance
-        if (increase)
-            account.Deposit(percent, "Ökning med 1 %");
-        else
-            account.Withdraw(percent, "Minskning med 1 %");
-
-        // adjust the interest rate by 1 %
-        if (account.InterestRate == null)
-            account.InterestRate = 0m;
-
-        if (increase)
-            account.InterestRate += 0.01m;
-        else
-            account.InterestRate -= 0.01m;
-
-        // the interest rate must be between 0 % and 100 %
-        if (account.InterestRate < 0m)
-            account.InterestRate = 0m;
-        if (account.InterestRate > 1m)
-            account.InterestRate = 1m;
-
-        await SaveAsync();
-        
-        _logger.LogInformation("Justerade saldo och ränta med 1% för konto {AccoutName}", account.Name);
-    }
-    
-    /// <summary>
     /// JSON options for export/import
     /// </summary>
     private static readonly JsonSerializerOptions _jsonOptions = new JsonSerializerOptions
@@ -344,5 +312,16 @@ public class AccountService : IAccountService
 
         await SaveAsync();
         return errors;
+    }
+    
+    public async Task ApplyAnnualInterestAsync()
+    {
+        await EnsureLoadedAsync();
+        foreach (var account in _accounts.Where(a => a.AccountType == AccountType.Sparkonto))
+        {
+            account.ApplyInterest();
+            _logger.LogInformation("Applied annual interest to account {AccountId}. New balance: {Balance}", account.Id, account.Balance);
+        }
+        await SaveAsync();
     }
 }

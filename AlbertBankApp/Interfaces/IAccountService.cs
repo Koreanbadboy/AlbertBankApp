@@ -8,8 +8,6 @@ namespace AlbertBankApp.Interfaces;
 public interface IAccountService
 {
     Task<IReadOnlyList<BankAccount>> GetAccountsAsync();
-    Task<BankAccount> CreateAccountAsync(string name, AccountType accountType, CurrencyType currency,
-        IReadOnlyList<Transaction> initialBalance, decimal? interestRate = null);
     Task DepositAsync(Guid accountId, decimal amount, string? note = null);
     Task WithdrawAsync(Guid accountId, decimal amount, string? note = null);
     Task<IReadOnlyList<Domain.Transaction>> GetTransactionsAsync(Guid accountId);
@@ -19,7 +17,7 @@ public interface IAccountService
     List<IBankAccount> GetAccounts();
     Task SaveAccountsAsync();
     Task<bool> ValidatePinAsync(string pin);
-    Task AdjustBalanceByPercentAsync(Guid accountId, bool increase);
     Task<string> ExportJsonAsync();
     Task<List<string>?> ImportJsonAsync(string json, bool replace);
+    Task ApplyAnnualInterestAsync();
 }
