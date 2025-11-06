@@ -5,6 +5,9 @@ using System.Text.Json.Serialization;
 
 namespace AlbertBankApp.Domain;
 
+/// <summary>
+///  A bank account in the banking application
+/// </summary>
 public class BankAccount : IBankAccount
 {
     private List<Transaction> _transactions = new List<Transaction>();
@@ -17,13 +20,29 @@ public class BankAccount : IBankAccount
     public decimal? InterestRate { get; set; }
     public decimal InitialBalance { get; set; }
     public DateTime LastUpdated { get; set; }
-    
+
+    /// <summary>
+    ///  All transactions related to this bank account
+    /// </summary>
     public IReadOnlyList<Transaction> Transactions
     {
         get => _transactions;
         set => _transactions = value != null ? new List<Transaction>(value) : new List<Transaction>();
     }
 
+    /// <summary>
+    /// Creates a new bank account with the given values.
+    /// Mainly used when loading data from JSON.
+    /// </summary>
+    /// <param name="id">Unique account ID.</param>
+    /// <param name="name">Name of the account.</param>
+    /// <param name="accountType">Type of account.</param>
+    /// <param name="currency">Account currency.</param>
+    /// <param name="balance">Current balance.</param>
+    /// <param name="initialBalance">Initial balance when created.</param>
+    /// <param name="lastUpdated">Last updated date.</param>
+    /// <param name="transactions">List of transactions.</param>
+    /// <param name="interestRate">Interest rate (for savings accounts).</param>
     [JsonConstructor]
     public BankAccount(
         Guid id,
@@ -33,7 +52,7 @@ public class BankAccount : IBankAccount
         decimal balance,
         decimal initialBalance,
         DateTime lastUpdated,
-        List<Transaction>? transactions,
+        IReadOnlyList<Transaction>? transactions,
         decimal? interestRate)
     {
         Id = id;
@@ -46,7 +65,14 @@ public class BankAccount : IBankAccount
         InterestRate = interestRate;
         _transactions = transactions != null ? new List<Transaction>(transactions) : new List<Transaction>();
     }
-    
+
+    /// <summary>
+    /// Deposits a specified amount into the account and records the transaction.
+    /// </summary>
+    /// <param name="amount">The amount to deposit.</param>
+    /// <param name="transactionId">Optional transaction ID (auto-generated if empty).</param>
+    /// <param name="note">Optional note for the transaction.</param>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown if the amount is less than or equal to zero.</exception>
     public void Deposit(decimal amount, Guid transactionId, string note)
     {
         if (amount <= 0) throw new ArgumentOutOfRangeException(nameof(amount));
@@ -73,7 +99,15 @@ public class BankAccount : IBankAccount
         _transactions.Add(tx);
         LastUpdated = now;
     }
-
+    
+    /// <summary>
+    /// Withdraws a specified amount from the account and records the transaction.
+    /// </summary>
+    /// <param name="amount">The amount to withdraw.</param>
+    /// <param name="transactionId">Optional transaction ID (auto-generated if empty).</param>
+    /// <param name="note">Optional note for the transaction.</param>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown if the amount is less than or equal to zero.</exception>
+    /// <exception cref="InvalidOperationException">Thrown if there are insufficient funds.</exception>
     public void Withdraw(decimal amount, Guid transactionId, string note)
     {
         if (amount <= 0) throw new ArgumentOutOfRangeException(nameof(amount));
@@ -101,11 +135,21 @@ public class BankAccount : IBankAccount
         _transactions.Add(tx);
         LastUpdated = now;
     }
+
+    /// <summary>
+    ///  Deposit and withdraw amount into the bank account
+    /// </summary>
     public void Deposit(decimal amount, string? note = null) => Deposit(amount, Guid.NewGuid(), note ?? "Deposit");
     public void Withdraw(decimal amount, string? note = null) => Withdraw(amount, Guid.NewGuid(), note ?? "Withdrawal");
-    
+
+    /// <summary>
+    ///  Adds an internal transaction to the account's transaction list.
+    /// </summary>
     internal void AddInternalTransaction(Transaction tx) => _transactions.Add(tx);
 
+    /// <summary>
+    ///  Transfers a specified amount from this account to the target account and records the transaction.
+    /// </summary>
     public void TransferTo(BankAccount target, decimal amount)
     {
         if (target == null) throw new ArgumentNullException(nameof(target));
@@ -141,27 +185,64 @@ public class BankAccount : IBankAccount
         target.LastUpdated = now;
     }
 
+    /// <summary>
+    ///  Removes a transaction by its ID and updates the account balance accordingly.
+    /// </summary>
+    /// <param name="transactionId">The ID of the transaction to remove.</param>
     public void RemoveTransaction(Guid transactionId)
     {
         var tx = _transactions.FirstOrDefault(t => t.Id == transactionId);
         if (tx == null) return;
         _transactions.Remove(tx);
-        
+
         decimal b = InitialBalance;
         foreach (var t in _transactions)
         {
             if (t.ToAccountId == Id) b += t.Amount;
             if (t.FromAccountId == Id) b -= t.Amount;
         }
+
         Balance = b;
         LastUpdated = DateTime.UtcNow;
     }
-
+    
+    /// <summary>
+    ///  Applies interest to the account if it is a savings account (Sparkonto).
+    ///  Also records the interest transaction.
+    /// </summary>
     public void ApplyInterest()
     {
-        if (AccountType == AccountType.Sparkonto && InterestRate.HasValue)
+        if (AccountType != AccountType.Sparkonto || !InterestRate.HasValue || InterestRate.Value == 0m)
+            return;
+    
+        var now = DateTime.UtcNow;
+        var before = Balance;
+    
+        var interestAmount = Math.Round(Balance * InterestRate.Value, 2);
+    
+        if (interestAmount == 0m) return;
+    
+        Balance += interestAmount;
+        
+        var transactionType = Enum.TryParse<TransactionType>("Interest", ignoreCase: true, out var parsed)
+            ? parsed
+            : TransactionType.Deposit;
+    
+        var tx = new Transaction
         {
-            Balance *= (1 + InterestRate.Value);
-        }
+            Id = Guid.NewGuid(),
+            TimeStamp = now,
+            Amount = interestAmount,
+            ToAccountId = Id,
+            TransactionType = transactionType,
+            Note = $"Ränta Sparkonto ({InterestRate.Value*100:0}%)",
+            BalanceBefore = before,
+            BalanceAfter = Balance,
+            ToAccountName = Name,
+            LastUpdated = now
+        };
+    
+        _transactions.Add(tx);
+        LastUpdated = now;
     }
 }

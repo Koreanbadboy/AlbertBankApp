@@ -94,7 +94,7 @@
                 <td>@account.Currency</td>
                 <td>@account.Balance.ToString("N2")</td>
                 
-                <!-- Showing interest procent -->
+                <!-- Showing intrest procent -->
                 <td>
                     @(account.InterestRate.HasValue ? (account.InterestRate.Value * 100).ToString("N2") + " %" : "-")
                 </td>

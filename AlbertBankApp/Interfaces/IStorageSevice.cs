@@ -5,8 +5,8 @@ namespace AlbertBankApp.Interfaces;
 /// </summary>
 public interface IStorageSevice
 {
-        //Spara
+        //Saves
         Task SetItemAsync<T>(string key, T value);
-        //Hämta
+        //Loads
         Task<T?> GetItemAsync<T>(string key);
 }
