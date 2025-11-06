@@ -3,18 +3,21 @@
 @inject IJSRuntime JS
 
 <h3>Backup & Återställning</h3>
-
+<!-- Export button-->
 <button class="btn btn-primary" @onclick="Export">Exportera data (JSON)</button>
 
+<!-- Import window-->
 <div class="mt-4">
     <label>Klistra in data (JSON) här för import</label>
     <InputTextArea class="form-control" @bind-Value="json" rows="10" />
     <div class="mt-2">
-        <!--<button class="btn btn-success" @onclick="() => Import(true)">Importera (ersätt allt)</button>-->
+        
+        <!-- Import button-->
         <button class="btn btn-secondary ms-2" @onclick="() => Import(false)">Importera (merga)</button>
     </div>
 </div>
 
+<!-- Error/Success text -->
 @if (errors?.Count > 0)
 {
     <div class="alert alert-danger mt-3">
@@ -26,24 +29,20 @@
 @code {
     
     /// <summary>
-    ///  JSON data to import
+    ///  JSON data to import/export
     /// </summary>
     private string json = "";
     private List<string>? errors;
     private bool ok;
 
-    /// <summary>
-    ///  Export account data as JSON and copy to clipboard
-    /// </summary>
+    // Export data to clipboard as JSON
     private async Task Export()
     {
         var data = await AccountService.ExportJsonAsync();
         await JS.InvokeVoidAsync("navigator.clipboard.writeText", data);
     }
-
-    /// <summary>
-    ///  Import account data from JSON
-    /// </summary>
+    
+    // Import data from JSON, replace existing data if 'replace' is true
     private async Task Import(bool replace)
     {
         ok = false; errors = null;

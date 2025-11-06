@@ -100,6 +100,7 @@ public class AccountService : IAccountService
             initialBalance,
             DateTime.UtcNow,
             new List<Transaction>(),
+            null,
             normalizedInterest
         );
 
