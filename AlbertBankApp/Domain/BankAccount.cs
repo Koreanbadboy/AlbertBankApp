@@ -20,6 +20,7 @@ public class BankAccount : IBankAccount
     public decimal? InterestRate { get; set; }
     public decimal InitialBalance { get; set; }
     public DateTime LastUpdated { get; set; }
+    public DateTime? LastInterestApplied { get; set; }
 
     /// <summary>
     ///  All transactions related to this bank account
@@ -53,6 +54,7 @@ public class BankAccount : IBankAccount
         decimal initialBalance,
         DateTime lastUpdated,
         IReadOnlyList<Transaction>? transactions,
+        DateTime? lastInterestApplied,
         decimal? interestRate)
     {
         Id = id;
@@ -63,6 +65,7 @@ public class BankAccount : IBankAccount
         InitialBalance = initialBalance;
         LastUpdated = lastUpdated;
         InterestRate = interestRate;
+        LastInterestApplied = lastInterestApplied;
         _transactions = transactions != null ? new List<Transaction>(transactions) : new List<Transaction>();
     }
 
@@ -207,27 +210,38 @@ public class BankAccount : IBankAccount
     }
     
     /// <summary>
-    ///  Applies interest to the account if it is a savings account (Sparkonto).
+    ///  Calculates and applies annual interest to the account if it is a savings account.
+    ///  Button that applies interest to the account if it is a savings account (Sparkonto).
     ///  Also records the interest transaction.
     /// </summary>
     public void ApplyInterest()
     {
         if (AccountType != AccountType.Sparkonto || !InterestRate.HasValue || InterestRate.Value == 0m)
             return;
-    
+
         var now = DateTime.UtcNow;
+
+        // require at least 12 months since last application
+        if (LastInterestApplied.HasValue && now < LastInterestApplied.Value.AddMonths(12))
+            return;
+
         var before = Balance;
-    
         var interestAmount = Math.Round(Balance * InterestRate.Value, 2);
-    
-        if (interestAmount == 0m) return;
-    
+
+        // record timestamp even if interest amount is zero to avoid repeated attempts in same year
+        if (interestAmount == 0m)
+        {
+            LastInterestApplied = now;
+            LastUpdated = now;
+            return;
+        }
+
         Balance += interestAmount;
-        
+
         var transactionType = Enum.TryParse<TransactionType>("Interest", ignoreCase: true, out var parsed)
             ? parsed
             : TransactionType.Deposit;
-    
+
         var tx = new Transaction
         {
             Id = Guid.NewGuid(),
@@ -235,14 +249,15 @@ public class BankAccount : IBankAccount
             Amount = interestAmount,
             ToAccountId = Id,
             TransactionType = transactionType,
-            Note = $"Ränta Sparkonto ({InterestRate.Value*100:0}%)",
+            Note = $"Ränta Sparkonto ({InterestRate.Value * 100:0}%)",
             BalanceBefore = before,
             BalanceAfter = Balance,
             ToAccountName = Name,
             LastUpdated = now
         };
-    
+
         _transactions.Add(tx);
+        LastInterestApplied = now;
         LastUpdated = now;
     }
 }
