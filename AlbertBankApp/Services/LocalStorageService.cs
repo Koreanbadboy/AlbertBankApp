@@ -13,6 +13,13 @@ public class LocalStorageService : ILocalStorageService
 {
     private readonly IJSRuntime _jsRuntime;
     private readonly ILogger<LocalStorageService> _logger;
+
+    // Use consistent JSON options so serialization/deserialization works reliably
+    private static readonly JsonSerializerOptions _jsonOptions = new JsonSerializerOptions
+    {
+        PropertyNameCaseInsensitive = true,
+        Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter(System.Text.Json.JsonNamingPolicy.CamelCase) }
+    };
     
     public LocalStorageService(IJSRuntime jsRuntime, ILogger<LocalStorageService> logger)
     {
@@ -33,7 +40,7 @@ public class LocalStorageService : ILocalStorageService
         }
         
         _logger.LogDebug("Hämtade datan från localStorage {key}", key);
-        return JsonSerializer.Deserialize<T>(json);
+        return JsonSerializer.Deserialize<T>(json, _jsonOptions);
     }
     
     /// <summary>
@@ -44,7 +51,7 @@ public class LocalStorageService : ILocalStorageService
     /// <typeparam name="T">The type of the object to store</typeparam>
     public async Task SetItemAsync<T>(string key, T value)
     {
-        var json = JsonSerializer.Serialize(value);
+        var json = JsonSerializer.Serialize(value, _jsonOptions);
         await _jsRuntime.InvokeVoidAsync("localStorage.setItem", key, json);
         _logger.LogDebug("Saved localStorage {key}", key);
     }

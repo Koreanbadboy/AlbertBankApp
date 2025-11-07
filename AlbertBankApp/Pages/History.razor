@@ -137,7 +137,7 @@ else
             {
                 var tasks = _accounts.Select(a => AccountService.GetTransactionsAsync(a.Id));
                 var results = await Task.WhenAll(tasks);
-                _transactions = results.SelectMany(r => r).ToList(); // Slå ihop alla transaktioner
+                _transactions = results.SelectMany(r => r).ToList();
             }
             catch (Exception ex)
             {
@@ -148,7 +148,6 @@ else
             {
                 StateHasChanged();
             }
-
             return;
         }
         
@@ -276,13 +275,11 @@ else
     /// </summary>
     private IEnumerable<Transaction> GetSortedTransactions()
     {
-        if (_transactions == null) return Enumerable.Empty<Transaction>();
-    
         if (_sortByAmount)
             return _sortAmountDescending
                 ? _transactions.OrderByDescending(t => t.Amount)
                 : _transactions.OrderBy(t => t.Amount);
-    
+
         return _sortDescending
             ? _transactions.OrderByDescending(t => t.LastUpdated)
             : _transactions.OrderBy(t => t.LastUpdated);
@@ -309,7 +306,7 @@ else
         if (_transactions == null) return Enumerable.Empty<Transaction>();
 
         var filtered = _transactions
-            .Where(t => t.LastUpdated >= startDate && t.LastUpdated <= endDate .AddDays(1).AddTicks(-1)); // inkluderar hela slutdatumet
+            .Where(t => t.LastUpdated >= startDate && t.LastUpdated <= endDate .AddDays(1).AddTicks(-1));
     
         if (_sortByAmount)
             return _sortAmountDescending
@@ -320,7 +317,7 @@ else
             ? filtered.OrderByDescending(t => t.LastUpdated)
             : filtered.OrderBy(t => t.LastUpdated);
     }
-    private DateTime StartDate { get; set; } = DateTime.Today.AddMonths(-1); // flyttar fram en månad som standard
-    private DateTime EndDate { get; set; } = DateTime.Today; // dagens datum som standard
+    private DateTime StartDate { get; set; } = DateTime.Today.AddMonths(-1); // Moves one month ahead as standard
+    private DateTime EndDate { get; set; } = DateTime.Today; // Today's date as standard
 }
 

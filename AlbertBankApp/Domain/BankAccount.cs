@@ -208,7 +208,7 @@ public class BankAccount : IBankAccount
         Balance = b;
         LastUpdated = DateTime.UtcNow;
     }
-    
+
     /// <summary>
     ///  Calculates and applies annual interest to the account if it is a savings account.
     ///  Button that applies interest to the account if it is a savings account (Sparkonto).
@@ -216,31 +216,20 @@ public class BankAccount : IBankAccount
     /// </summary>
     public void ApplyInterest()
     {
-        if (AccountType != AccountType.Sparkonto || !InterestRate.HasValue || InterestRate.Value == 0m)
+        // Only apply interest for savings accounts with a valid rate
+        if (AccountType != AccountType.Sparkonto || !InterestRate.HasValue || InterestRate.Value <= 0m)
             return;
 
         var now = DateTime.UtcNow;
 
-        // require at least 12 months since last application
-        if (LastInterestApplied.HasValue && now < LastInterestApplied.Value.AddMonths(12))
-            return;
-
         var before = Balance;
         var interestAmount = Math.Round(Balance * InterestRate.Value, 2);
 
-        // record timestamp even if interest amount is zero to avoid repeated attempts in same year
-        if (interestAmount == 0m)
-        {
-            LastInterestApplied = now;
-            LastUpdated = now;
+        // If interest is zero, do nothing
+        if (interestAmount <= 0m)
             return;
-        }
 
         Balance += interestAmount;
-
-        var transactionType = Enum.TryParse<TransactionType>("Interest", ignoreCase: true, out var parsed)
-            ? parsed
-            : TransactionType.Deposit;
 
         var tx = new Transaction
         {
@@ -248,7 +237,7 @@ public class BankAccount : IBankAccount
             TimeStamp = now,
             Amount = interestAmount,
             ToAccountId = Id,
-            TransactionType = transactionType,
+            TransactionType = TransactionType.Interest,
             Note = $"Ränta Sparkonto ({InterestRate.Value * 100:0}%)",
             BalanceBefore = before,
             BalanceAfter = Balance,

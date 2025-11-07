@@ -99,6 +99,7 @@
                     @(account.InterestRate.HasValue ? (account.InterestRate.Value * 100).ToString("N2") + " %" : "-")
                 </td>
                 
+                <!-- Apply intrest button -->
                 <td>
                     @if (account.AccountType == AccountType.Sparkonto)
                     { 
@@ -131,7 +132,8 @@ else
 
     private string? _successMessage;
     private IReadOnlyList<BankAccount> _accounts = Array.Empty<BankAccount>();
-    
+    private string _interestMessage;
+
     /// <summary>
     ///  Initializes the component and loads existing accounts
     /// </summary>
@@ -140,6 +142,14 @@ else
         _editContext = new EditContext(_model);
         _messages = new ValidationMessageStore(_editContext);
         await LoadAccountsAsync();
+    }
+
+    private async Task ApplyInterestAsync()
+    {
+        await AccountService.ApplyAnnualInterestAsync();
+        _accounts = await AccountService.GetAccountsAsync();
+
+        _interestMessage = "Om ingen förändring syns har räntan redan tillämpats under de senaste 12 månaderna.";
     }
 
     /// <summary>
@@ -223,10 +233,13 @@ else
         StateHasChanged();
     }
     
+    /// <summary>
+    /// Applies interest for testing
+    /// </summary>
     private async Task ApplyInterest()
     {
         await AccountService.ApplyAnnualInterestAsync();
         // Refresh accounts if needed
         await LoadAccountsAsync();
     }
-}
+} 

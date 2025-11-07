@@ -23,40 +23,56 @@ public class AccountService : IAccountService
         _logger = logger;
     }
     
-   
-    private async Task EnsureLoadedAsync()
-    {
-        if (_loaded) return;
-        var fromStorage = await _storage.GetItemAsync<List<BankAccount>>(StorageKey);
-        _accounts.Clear();
-        if (fromStorage is { Count: > 0 })
-        {
-            _accounts.AddRange(fromStorage);
-            _logger.LogInformation("Loaded {Count} accounts from storage.", fromStorage.Count);
-        }
-        else
-        {
-            _logger.LogInformation("No accounts found in storage.");
-        }
+    /// <summary>
+    /// Loads all bank accounts from storage if not already loaded.
+    /// Automatically applies interest to savings accounts if 12 months have passed since the last interest update.
+    /// </summary>
+   private async Task EnsureLoadedAsync()
+   {
+       if (_loaded) return;
 
-        var now = DateTime.UtcNow;
-        var anyApplied = false;
-        foreach (var account in _accounts.Where(a => a.AccountType == AccountType.Sparkonto && a.InterestRate.HasValue && a.InterestRate.Value > 0))
-        {
-            var yearsElapsed = (int)((now - account.LastUpdated).TotalDays / 365);
-            for (int i = 0; i < yearsElapsed; i++)
-            {
-                account.ApplyInterest();
-                anyApplied = true;
-            }
-            account.LastUpdated = now;
-        }
-        if (anyApplied)
-        {
-            await SaveAsync();
-        }
-        _loaded = true;
-    }
+       var fromStorage = await _storage.GetItemAsync<List<BankAccount>>(StorageKey);
+       _accounts.Clear();
+
+       if (fromStorage is { Count: > 0 })
+       {
+           _accounts.AddRange(fromStorage);
+           _logger.LogInformation("Loaded {Count} accounts from storage.", fromStorage.Count);
+       }
+       else
+       {
+           _logger.LogInformation("No accounts found in storage.");
+       }
+
+       // Auto-apply interest if 12 months have passed
+       var now = DateTime.UtcNow;
+       var anyApplied = false;
+
+       foreach (var account in _accounts)
+       {
+           if (account.AccountType != AccountType.Sparkonto)
+               continue;
+
+           if (!account.InterestRate.HasValue || account.InterestRate.Value <= 0)
+               continue;
+
+           if (!account.LastInterestApplied.HasValue)
+               continue;
+
+           if (now >= account.LastInterestApplied.Value.AddMonths(12))
+           {
+               account.ApplyInterest(); // One year interest
+               anyApplied = true;
+           }
+       }
+
+       if (anyApplied)
+       {
+           await SaveAsync();
+       }
+
+       _loaded = true;
+   }
 
     /// <summary>
     ///  Saves accounts to storage
@@ -268,9 +284,6 @@ public class AccountService : IAccountService
     /// <summary>
     /// JSON Import
     /// </summary>
-    /// <param name="json"></param>
-    /// <param name="replaceExisting"></param>
-    /// <returns></returns>
     public async Task<List<string>> ImportJsonAsync(string json, bool replaceExisting = false)
     {
         var errors = new List<string>();
@@ -315,14 +328,34 @@ public class AccountService : IAccountService
         return errors;
     }
     
+    /// <summary>
+    /// Applies annual interest to all savings accounts and saves if any balances changed.
+    /// </summary>
     public async Task ApplyAnnualInterestAsync()
     {
         await EnsureLoadedAsync();
+
+        var anyApplied = false;
+
         foreach (var account in _accounts.Where(a => a.AccountType == AccountType.Sparkonto))
         {
-            account.ApplyInterest();
-            _logger.LogInformation("Applied annual interest to account {AccountId}. New balance: {Balance}", account.Id, account.Balance);
+            var before = account.Balance;
+
+            account.ApplyInterest(); // sköter 12-månaderslogiken
+
+            if (account.Balance != before)
+            {
+                anyApplied = true;
+                _logger.LogInformation(
+                    "Applied annual interest to account {AccountId}. New balance: {Balance}",
+                    account.Id,
+                    account.Balance);
+            }
         }
-        await SaveAsync();
+
+        if (anyApplied)
+        {
+            await SaveAsync();
+        }
     }
 }
