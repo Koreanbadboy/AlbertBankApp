@@ -1,4 +1,7 @@
 # MinBankApp
+
+Appen är på svenska men koden är skriven på engelska.
+
 - PINKOD - 1234
 
 ## Kom igång
@@ -8,7 +11,7 @@
 
 ## Skapa konto
 - Skapa nya konton av typen Privatkonto eller Sparkonto
-- Sparkonton har en justerbar räntesats
+- Sparkonton har en valbar räntesats
 
 ## Ränta på sparkonto
 - Applicera ränta direkt på sparkonton  
