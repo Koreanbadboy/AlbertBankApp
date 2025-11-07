@@ -21,6 +21,9 @@ public class LocalStorageService : ILocalStorageService
         Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter(System.Text.Json.JsonNamingPolicy.CamelCase) }
     };
     
+    /// <summary>
+    ///  Creates a new instance of LocalStorageService
+    /// </summary>
     public LocalStorageService(IJSRuntime jsRuntime, ILogger<LocalStorageService> logger)
     {
         _jsRuntime = jsRuntime ?? throw new ArgumentNullException(nameof(jsRuntime));
