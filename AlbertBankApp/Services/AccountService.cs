@@ -17,6 +17,9 @@ public class AccountService : IAccountService
     private List<BankAccount> _accounts = new();
     private bool _loaded;
 
+    /// <summary>
+    ///  Constructor for AccountService
+    /// </summary>
     public AccountService(ILocalStorageService storage,  ILogger<AccountService> logger)
     {
         _storage = storage;
@@ -70,7 +73,6 @@ public class AccountService : IAccountService
        {
            await SaveAsync();
        }
-
        _loaded = true;
    }
 
@@ -341,7 +343,7 @@ public class AccountService : IAccountService
         {
             var before = account.Balance;
 
-            account.ApplyInterest(); // sköter 12-månaderslogiken
+            account.ApplyInterest(); 
 
             if (account.Balance != before)
             {

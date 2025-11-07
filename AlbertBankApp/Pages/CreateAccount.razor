@@ -144,12 +144,13 @@ else
         await LoadAccountsAsync();
     }
 
+    /// <summary>
+    ///  Applies interest to savings accounts
+    /// </summary>
     private async Task ApplyInterestAsync()
     {
         await AccountService.ApplyAnnualInterestAsync();
         _accounts = await AccountService.GetAccountsAsync();
-
-        _interestMessage = "Om ingen förändring syns har räntan redan tillämpats under de senaste 12 månaderna.";
     }
 
     /// <summary>

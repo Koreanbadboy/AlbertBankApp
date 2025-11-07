@@ -221,7 +221,6 @@ public class BankAccount : IBankAccount
             return;
 
         var now = DateTime.UtcNow;
-
         var before = Balance;
         var interestAmount = Math.Round(Balance * InterestRate.Value, 2);
 
