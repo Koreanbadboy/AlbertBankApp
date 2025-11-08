@@ -148,7 +148,7 @@ public class BankAccount : IBankAccount
     /// <summary>
     ///  Adds an internal transaction to the account's transaction list.
     /// </summary>
-    internal void AddInternalTransaction(Transaction tx) => _transactions.Add(tx);
+    private void AddInternalTransaction(Transaction tx) => _transactions.Add(tx);
 
     /// <summary>
     ///  Transfers a specified amount from this account to the target account and records the transaction.
