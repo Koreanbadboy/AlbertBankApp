@@ -102,11 +102,20 @@ public class AccountService : IAccountService
         await EnsureLoadedAsync();
 
         decimal? normalizedInterest = null;
+
         if (accountType == AccountType.Sparkonto)
         {
-            normalizedInterest = interestRate.HasValue
-                ? (interestRate.Value > 1m ? interestRate.Value / 100m : interestRate.Value)
-                : 0.01m;
+            if (interestRate.HasValue)
+            {
+                if (interestRate.Value > 1m)
+                    normalizedInterest = interestRate.Value / 100m;
+                else
+                    normalizedInterest = interestRate.Value;
+            }
+            else
+            {
+                normalizedInterest = 0.01m;
+            }
         }
 
         var newAccount = new BankAccount(
@@ -258,6 +267,9 @@ public class AccountService : IAccountService
     /// </summary>
     private readonly string _correctPin = "1234";
 
+    /// <summary>
+    ///  Validates the provided PIN code asynchronously
+    /// </summary>
     public Task<bool> ValidatePinAsync(string pin)
     {
         return Task.FromResult(pin == _correctPin);

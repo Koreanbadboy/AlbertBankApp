@@ -46,13 +46,7 @@
     private void OnlyDigits(ChangeEventArgs e)
     {
         var value = e.Value?.ToString() ?? string.Empty;
-        var x = new System.Text.StringBuilder(value.Length);
-        foreach (var ch in value)
-        {
-            if (char.IsDigit(ch)) x.Append(ch);
-        }
-
-        userCode = x.ToString();
+        userCode = new string(value.Where(char.IsDigit).ToArray());
     }
     
     /// <summary>

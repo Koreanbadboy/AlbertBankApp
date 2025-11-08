@@ -124,22 +124,29 @@ else
     /// </summary>
     private async Task Deposit()
     {
-        if (selectedAccount == null || amount <= 0)
+        if (selectedAccount == null)
         {
-            message = "Ange ett giltigt belopp.";
+            message = "Välj ett konto först.";
+            messageSuccess = false;
+            return;
+        }
+        
+        if (amount <= 0)
+        {
+            message = "Beloppet måste vara större än 0.";
             messageSuccess = false;
             return;
         }
         try
         {
             await AccountService.DepositAsync(selectedAccount.Id, amount, note);
-            message = $"Insättning av {amount:N2} lyckades.";
+            message = "Insättning lyckades!";
             messageSuccess = true;
             await LoadAccounts();
         }
-        catch (Exception ex)
+        catch (Exception e)
         {
-            message = ex.Message;
+            message = "Fel: " + e.Message;
             messageSuccess = false;
         }
     }
@@ -151,21 +158,21 @@ else
     {
         if (selectedAccount == null || amount <= 0)
         {
-            message = "Ange ett giltigt belopp.";
+            message = "Fel belopp eller inget konto valt.";
             messageSuccess = false;
             return;
         }
         try
         {
             await AccountService.WithdrawAsync(selectedAccount.Id, amount, note);
-            message = $"Uttag av {amount:N2} lyckades.";
+            message = "Uttag lyckades!";
             messageSuccess = true;
-            await LoadAccounts();
         }
-        catch (Exception ex)
+        catch (Exception e)
         {
-            message = ex.Message;
+            message = "Något gick fel: " + e.Message;
             messageSuccess = false;
         }
+        await LoadAccounts();
     }
 }
