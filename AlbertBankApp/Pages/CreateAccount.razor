@@ -205,19 +205,20 @@ else
         }
         
         // Create the account
-        await ((AccountService)AccountService).CreateAccountAsync(
-            name: _model.Name,
-            accountType: _model.Type,
-            currency: _model.Currency,
-            initialBalance: _model.InitialBalance,
-            interestRate: _model.InterestRate
+        var service = (AccountService)AccountService;
+        await service.CreateAccountAsync(
+            _model.Name,
+            _model.Type,
+            _model.Currency,
+            _model.InitialBalance,
+            _model.InterestRate
         );
         
         // Show success message and reset form
-        _successMessage = $"Kontot '{_model.Name}' har skapats.";
+        _successMessage = "Konto skapat!";
+
         _model = new CreateAccountModel();
         _editContext = new EditContext(_model);
-        _messages = new ValidationMessageStore(_editContext);
 
         await LoadAccountsAsync();
         StateHasChanged();
